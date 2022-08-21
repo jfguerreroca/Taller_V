@@ -19,11 +19,37 @@
 
 #include <stdint.h>
 
-#define NUMERO_DE_VUELTAS 25
+unsigned char resultado = 0, sumando_1 = 10, sumando_2 = 15, negacion = 0, l;
+unsigned short aviones = 0;
+unsigned int gatos = 0;
 
+/**
+ * Función principal
+ */
+int main(void){
 
-int main(void)
-{
+	// Sumando variables
+
+	resultado = sumando_1 + sumando_2;
+
+	// Cambiando el valor de la variable sumando_1, aviones y gatos
+	aviones = 19203;
+	gatos = 0x23AD89;
+	sumando_1 = 45;
+
+	resultado = 0b00001000;
+
+	resultado = resultado >> 1;
+
+	// Probando los shifts
+	sumando_1 = sumando_1 << 3;
+	sumando_1 = sumando_1 >> 3;
+
+	// Negación de un número
+	negacion = ~resultado;
+
     /* Loop forever */
+	while(l){
 
+	}
 }
