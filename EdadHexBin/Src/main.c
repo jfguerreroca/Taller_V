@@ -58,7 +58,7 @@ int main(void)
 	dias_invertido = ~dias_transcurridos;
 	dias_invertido = dias_invertido + 1;
 	dias_invertido = dias_invertido + dias_transcurridos;
-	prueba_not = 155;
+	prueba_not = -127;
 	prueba_not = ~prueba_not;
 
 	//Punto 9
