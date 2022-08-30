@@ -10,7 +10,7 @@
  *
  */
 
-#include "GPIOxdriver.h"
+#include "GPIOxDriver.h"
 
 /**
  * Para cualquier periferico, hay varios pasos que siempre se deben seguir en un
@@ -23,7 +23,7 @@ void GPIO_Config (GPIO_Handler_t *pGPIOHandler){
 
 	// Variable para hacer todo paso a paso
 	uint32_t auxConfig = 0;
-	uint32_t aunPosition = 0;
+	uint32_t auxPosition = 0;
 
 	// 1) Activar el periferico
 	//Verificamos para GPIOA
@@ -137,11 +137,11 @@ void GPIO_WritePin(GPIO_Handler_t *pPinHandler, uint8_t newState){
 	// pPinHandler->pGPIOx->ODR &= ~(SET << pPinHandler->GPIO_PinConfig.GPIO_PinNumber);
 	if(newState == SET){
 		// Trabajando con la parte baja del registro
-		pPinHandler->pGPIOx-BSRR |= (SET << pPinHandler->GPIO_PinConfig.GPIO_PinNumber);
+		pPinHandler->pGPIOx->BSRR |= (SET << pPinHandler->GPIO_PinConfig.GPIO_PinNumber);
 	}
 	else{
 		// Trabajando con la parte alta del registro
-		pPinHandler->pGPIOx-BSRR |= (SET << pPinHandler->GPIO_PinConfig.GPIO_PinNumber + 16);
+		pPinHandler->pGPIOx->BSRR |= (SET << (pPinHandler->GPIO_PinConfig.GPIO_PinNumber + 16));
 	}
 }
 

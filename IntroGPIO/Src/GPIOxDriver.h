@@ -31,7 +31,7 @@ typedef struct
 typedef struct
 {
 	GPIOx_RegDef_t 		*pGPIOx;		/*!<Dirección del puerto al que el PIN corresponde >*/
-	GPIOx_PinConfig_t 	GPIO_PinConfig;	/*!<Configuracion del PIN>*/
+	GPIO_PinConfig_t 	GPIO_PinConfig;	/*!<Configuracion del PIN>*/
 
 } GPIO_Handler_t;
 
