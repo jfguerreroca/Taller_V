@@ -12,7 +12,7 @@
 
 /**
  * Función principal del programa
- * Esta funcion es el corazón del programa
+ * Esta función es el corazón del programa
  */
 int main(void)
 {
