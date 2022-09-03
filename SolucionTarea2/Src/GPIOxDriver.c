@@ -128,7 +128,7 @@ void GPIO_Config (GPIO_Handler_t  *pGPIOHandler){
 
 	} //Fin del GPIO_config
 
-/**Fnción utilizada para cambiar de estado el pin entregado en el handler, asignando el valor
+/**Función utilizada para cambiar de estado el pin entregado en el handler, asignando el valor
  * entregado de la variable newState
  */
 
