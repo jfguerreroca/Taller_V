@@ -4,6 +4,7 @@
  *  Created on: Aug 20, 2022
  *      Author: Felipe Guerrero
  *	Mail: jfguerreroca@unal.edu.co
+ *	Birth date: 31/03/2000
  */
 
 #include <stdint.h>
