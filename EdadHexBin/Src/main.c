@@ -2,7 +2,8 @@
  * main.c
  *
  *  Created on: Aug 20, 2022
- *      Author: Felipe
+ *      Author: Felipe Guerrero
+ *	Mail: jfguerreroca@unal.edu.co
  */
 
 #include <stdint.h>
