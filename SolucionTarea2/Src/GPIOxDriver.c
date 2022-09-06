@@ -147,7 +147,7 @@ void GPIO_WritePin(GPIO_Handler_t * pPinHandler, uint8_t newState){
 
 uint32_t GPIO_ReadPin(GPIO_Handler_t *pPinHandler){
 	// Creamos una variable auxiliar la cual luego retornaremos
-	uint16_t pinValue = 0;
+	uint32_t pinValue = 0;
 
 	// Cargamos el valor del registro IDR, desplazado a derecha tantas veces como la ubicacion
 	// del pin especifico
@@ -158,14 +158,14 @@ uint32_t GPIO_ReadPin(GPIO_Handler_t *pPinHandler){
 	 * El error de este código está en que solo está moviendo el valor del PIN necesario a la
 	 * posición 0, pero no está teniendo en cuenta que puede haber mas de un PIN en uso.
 	 * Por esto, la solución propuesta (hay muchas posibilidades) es mover a la izquierda
-	 * 15 menos el numero del PIN, de manera que el valor esperado quede en la posicion 15
-	 * del arreglo de 16 bits. Luego movemos a la derecha 15 veces este mismo valor para que
+	 * 31 menos el numero del PIN, de manera que el valor esperado quede en la posicion 31
+	 * del arreglo de 32 bits. Luego movemos a la derecha 31 veces este mismo valor para que
 	 * obtengamos el estado del numero del PIN que ingresó a la función, y el resto de valores
-	 * estén en 0, donde podremos ver si el PIN está activado (pinValue = 0xb1) o está
-	 * desactivado (pinValue = 0xb0).
+	 * estén en 0, donde podremos ver si el PIN está activado (pinValue = 0b1) o está
+	 * desactivado (pinValue = 0b0).
 	 */
-	pinValue = pPinHandler->pGPIOx->IDR << (15 - (pPinHandler->GPIO_PinConfig.GPIO_PinNumber));
-	pinValue >>= 15;
+	pinValue = pPinHandler->pGPIOx->IDR << (31 - (pPinHandler->GPIO_PinConfig.GPIO_PinNumber));
+	pinValue >>= 31;
 
 	return pinValue;
 }
