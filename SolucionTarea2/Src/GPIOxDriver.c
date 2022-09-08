@@ -154,7 +154,9 @@ uint32_t GPIO_ReadPin(GPIO_Handler_t *pPinHandler){
 
 	//pinValue = (pPinHandler->pGPIOx->IDR >> pPinHandler->GPIO_PinConfig.GPIO_PinNumber);
 
-	/*
+	/**
+	 * Punto 1:
+	 *
 	 * El error de este código está en que solo está moviendo el valor del PIN necesario a la
 	 * posición 0, pero no está teniendo en cuenta que puede haber mas de un PIN en uso.
 	 * Por esto, la solución propuesta (hay muchas posibilidades) es mover a la izquierda
