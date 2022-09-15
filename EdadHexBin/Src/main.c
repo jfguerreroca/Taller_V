@@ -82,6 +82,8 @@ int main(void)
 	 * 											dias = 0b1111111101001
 	 * 											horas = 0b101111110111011000
 	 * 											segundos = 0x2a11ad80
+	 * // Tus calculos estan mal, al parecer sumaste un dia mas, pero el desfase de 138 dias es
+	 * // correcto, por lo que creo que te equivocaste pasando los datos al copiarlos...
 	 *
 	 * Las variables las encontré utilizando el apartado de live expressions, donde deja cambiar
 	 * el formato de numero y copiar las variables necesarias. El tipo de variable sigue siendo
@@ -137,6 +139,7 @@ int main(void)
 	 */
 	mascara = 0x0a000400;
 	segundos_transcurridos_m = segundos_transcurridos & mascara;
+	// Increiblmente tu error en el punto 5 no afecta este resultado.
 
 	/**
 	 * Punto 10: Aplicamos la mascara 0x040, lo que nos da como resultado 0x040. Al ser diferente de 0,
@@ -145,6 +148,9 @@ int main(void)
 	mascara_2 = 0x040;
 	segundos_transcurridos_m2 = segundos_transcurridos & mascara_2;
 	mascara_3 = 0x201104c0;
+	// Aca estas reportando el resultado correcto para los segundos, por lo cual creo que en 5 tienes
+	// un error de escritura.
+
 	segundos_transcurridos_m3 = segundos_transcurridos & mascara_3;
 
 	/**
@@ -155,6 +161,7 @@ int main(void)
 	operador_signo_admiracion = 5;
 	operador_signo_admiracion = !segundos_transcurridos_m3;
 	operador_signo_admiracion = !operador_signo_admiracion;
+	// Esto se podia explicar mejor...
 
 
     /* Loop forever */
