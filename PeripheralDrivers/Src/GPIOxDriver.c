@@ -172,5 +172,17 @@ uint32_t GPIO_ReadPin(GPIO_Handler_t *pPinHandler){
 	return pinValue;
 }
 
+// Funcion para cambiar el estado del Pin
+
+void GPIOxTogglePin(GPIO_Handler_t *pPinHandler){
+		uint8_t estadoPin = GPIO_ReadPin(&*pPinHandler);
+		if (estadoPin == 0){
+			GPIO_WritePin(&*pPinHandler, SET);
+		}
+		else if (estadoPin == 1){
+			GPIO_WritePin(&*pPinHandler, RESET);
+		}
+	}
+
 
 
