@@ -2,23 +2,23 @@
  ******************************************************************************
  * @file           : main.c
  * @author         : jfguerreroca
- * @brief          : Configuración básica de un proyecto
+ * @name		   : Juan Felipe Guerrero Cataño
+ * @brief          : Tarea 3
  ******************************************************************************
  *
  ******************************************************************************
  */
 
+/* Definimos las librerias que vamos a utilizar. En este caso agregamos una libreria llamada stdlib.h, para
+ * utilizar la funcion rand(), que nos permitira generar numeros aleatorios.
+ */
 #include <stdint.h>
+#include <stdlib.h>
 #include <stdbool.h>
 #include "stm32f4xx.h"
 #include "BasicTimer.h"
 #include "GPIOxDriver.h"
 #include "USARTxDriver.h"
-
-/**
- * Función principal del programa
- * Esta función es el corazón del programa
- * */
 
 // Definimos los handler para los perifericos necesarios en el proyecto
 
@@ -30,14 +30,27 @@ GPIO_Handler_t 			handlerBlinkyLed 	= {0};
 GPIO_Handler_t			handlerUserButton	= {0};
 GPIO_Handler_t			handlerTxPin		= {0};
 
-void TIM2_IRQHandler(void);
-
+// Definimos las variables que utilizaremos
 uint8_t blinky = 0;
 uint8_t data = 0;
 uint8_t ButtonStatus = 0;
+uint8_t flag = 0;
 
+// Definimos las funciones que vamos a utilizar
+void TIM2_IRQHandler(void);
+
+// Funcion principal del programa
 int main(void)
 {
+	/*
+	 * Cargamos las configuraciones de cada periferico a utilizar:
+	 * 		- Pin A5 del UserLed
+	 * 		- Pin C13 del UserButton
+	 * 		- Pin A9 para el USART1 (funcion alternativa AF7)
+	 * 		- Timer 2 lanzando interrupciones cada 250ms
+	 * 		- USART1 para transmision de datos
+	 */
+
 	handlerBlinkyLed.pGPIOx = GPIOA;
 	handlerBlinkyLed.GPIO_PinConfig.GPIO_PinNumber = PIN_5;
 	handlerBlinkyLed.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_OUT;
@@ -58,7 +71,7 @@ int main(void)
 
 	handlerTxPin.pGPIOx = GPIOA;
 	handlerTxPin.GPIO_PinConfig.GPIO_PinNumber 			= PIN_9;
-	handlerTxPin.GPIO_PinConfig.GPIO_PinMode 			= GPIO_MODE_OUT;
+	handlerTxPin.GPIO_PinConfig.GPIO_PinMode 			= GPIO_MODE_ALTFN;
 	handlerTxPin.GPIO_PinConfig.GPIO_PinOPType 			= GPIO_OTYPE_PUSHPULL;
 	handlerTxPin.GPIO_PinConfig.GPIO_PinSpeed 			= GPIO_OSPEED_FAST;
 	handlerTxPin.GPIO_PinConfig.GPIO_PinPuPdControl 	= GPIO_PUPDR_NOTHING;
@@ -82,15 +95,49 @@ int main(void)
 
 	USART_Config(&handlerUSART1);
 
+	// Llamamos a la funcion que se encarga de atender las interrupciones
+
 	TIM2_IRQHandler();
 
 	/* Loop forever */
 	while(1){
 
-	}
+		/*
+		 * Leemos el estado de la bandera definida en la funcion Callback (la cual es llamada por la funcion IRQHandler)
+		 * y con esta definimos si mandamos (cuando la bandera está activa) o no (cuando la bandera está abajo)
+		 * la variable data.
+		 * Con el estado del boton decidimos si esta variable será "constante" (cuando no se presiona el boton), o un
+		 * dato aleatorio (cuando dejamos presionado el boton).
+		 * El dato aleatorio se definio utilizando la funcion rand(), la cual arroja un dato aleatorio entre 0 y N, donde
+		 * para nosotros N=50.
+		 *
+		 * La funcion tiene la siguiente estructura:
+		 * 		data = rand() % N+1; , donde N es el maximo del rango de numeros posibles.
+		 *
+		 * El valor se asigna a la variable data, la cual es enviada con la funcion writeChar, y tambien bajamos la bandera
+		 * para indicar que la interrupcion ya fue atendida (en este caso, el envio de un dato cada 250ms).
+		 */
+		ButtonStatus = GPIO_ReadPin(&handlerUserButton);
 
+		if (flag == 1){
+			if (ButtonStatus == 0){
+				data = rand() % 51;
+			}else{
+				data = 60;
+			}
+			writeChar(&handlerUSART1, data);
+			flag = 0;
+		}
+	}
 	return 0;
 }
+
+/*
+ * Definimos la funcion Callback para que cada 250 ms el UserLed cambie de estado (Hacer "blinky"),
+ * indicando que el programa está funcionando correctamente.
+ * Ademas, levantamos la bandera (flag=1) para que en el ciclo while de la funcion main se sepa que
+ * hay una interrupcion por atender.
+ */
 
 void BasicTimer2_Callback(void){
 	blinky = !blinky;
@@ -100,10 +147,6 @@ void BasicTimer2_Callback(void){
 	    else{
 	        GPIO_WritePin(&handlerBlinkyLed, RESET);
 	    }
-	data = 35;
-	ButtonStatus = GPIO_ReadPin(&handlerUserButton);
-	if (ButtonStatus == 0){
-		data = data + 65;
-	}
-	writeChar(&handlerUSART1, data);
+	flag = 1;
+
 }

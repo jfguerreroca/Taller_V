@@ -36,19 +36,23 @@ void BasicTimer_Config(BasicTimer_Handler_t *ptrBTimerHandler){
 	__disable_irq();
 
 	/* 1. Activar la señal de reloj del periférico requerido */
-	if(ptrBTimerHandler->ptrTIMx==TIM2){
+	if(ptrBTimerHandler->ptrTIMx == TIM2){
 		// Registro del RCC que nos activa la señal de reloj para el TIM2
 		RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
-	}else if(ptrBTimerHandler->ptrTIMx==TIM3){
+	}
+	else if(ptrBTimerHandler->ptrTIMx == TIM3){
 		// Registro del RCC que nos activa la señal de reloj para el TIM3
 		RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
-	}else if(ptrBTimerHandler->ptrTIMx==TIM4){
+	}
+	else if(ptrBTimerHandler->ptrTIMx == TIM4){
 		// Registro del RCC que nos activa la señal de reloj para el TIM4
 		RCC->APB1ENR |= RCC_APB1ENR_TIM4EN;
-	}else if(ptrBTimerHandler->ptrTIMx==TIM5){
-		// Registro del RCC que nos activa la señal de reloj para el TIM4
+	}
+	else if(ptrBTimerHandler->ptrTIMx == TIM5){
+		// Registro del RCC que nos activa la señal de reloj para el TIM5
 		RCC->APB1ENR |= RCC_APB1ENR_TIM5EN;
-	}else{
+		}
+	else{
 		__NOP();
 	}
 
@@ -57,22 +61,21 @@ void BasicTimer_Config(BasicTimer_Handler_t *ptrBTimerHandler){
 	 * periodo_incremento * veces_incremento_counter = periodo_update
 	 * Modificar el valor del registro PSC en el TIM utilizado
 	 */
-	/* Escriba codigo aca */
-	ptrBTimerHandler->ptrTIMx ->PSC = ptrBTimerHandler->TIMx_Config.TIMx_period;
+
+	ptrBTimerHandler->ptrTIMx->PSC = ptrBTimerHandler->TIMx_Config.TIMx_speed;
 
 	/* 3. Configuramos la dirección del counter (up/down)*/
 	if(ptrBTimerHandler->TIMx_Config.TIMx_mode == BTIMER_MODE_UP){
 
 		/* 3a. Estamos en UP_Mode, el limite se carga en ARR y se comienza en 0 */
 		// Configurar el registro que nos controla el modo up or down
-		/* Escriba codigo aca */
-		ptrBTimerHandler->ptrTIMx->CR1&= ~TIM_CR1_DIR;
+		//Necesitamor poner DIR en 0
+		ptrBTimerHandler->ptrTIMx->CR1 &= ~TIM_CR1_DIR;
 
 		/* 3b. Configuramos el Auto-reload. Este es el "limite" hasta donde el CNT va a contar */
 		ptrBTimerHandler->ptrTIMx->ARR = ptrBTimerHandler->TIMx_Config.TIMx_period - 1;
 
 		/* 3c. Reiniciamos el registro counter*/
-		/* Escriba codigo aca */
 		ptrBTimerHandler->ptrTIMx->CNT = 0;
 
 	}else{
@@ -94,23 +97,26 @@ void BasicTimer_Config(BasicTimer_Handler_t *ptrBTimerHandler){
 
 	/* 5. Activamos la interrupción debida al Timerx Utilizado
 	 * Modificar el registro encargado de activar la interrupcion generada por el TIMx*/
-	/* Escriba codigo aca */
 	ptrBTimerHandler->ptrTIMx->DIER |= TIM_DIER_UIE;
 
 	/* 6. Activamos el canal del sistema NVIC para que lea la interrupción*/
-	if(ptrBTimerHandler->ptrTIMx==TIM2){
+	if(ptrBTimerHandler->ptrTIMx == TIM2){
 		// Activando en NVIC para la interrupción del TIM2
 		NVIC_EnableIRQ(TIM2_IRQn);
-	}else if(ptrBTimerHandler->ptrTIMx==TIM3){
+	}
+	else if(ptrBTimerHandler->ptrTIMx == TIM3){
 		// Activando en NVIC para la interrupción del TIM3
 		NVIC_EnableIRQ(TIM3_IRQn);
-	}else if(ptrBTimerHandler->ptrTIMx==TIM4){
+	}
+	else if(ptrBTimerHandler->ptrTIMx == TIM4){
 		// Activando en NVIC para la interrupción del TIM4
 		NVIC_EnableIRQ(TIM4_IRQn);
-	}else if(ptrBTimerHandler->ptrTIMx==TIM5){
-		// Activando en NVIC para la interrupción del TIM4
+	}
+	else if(ptrBTimerHandler->ptrTIMx == TIM5){
+		// Activando en NVIC para la interrupción del TIM5
 		NVIC_EnableIRQ(TIM5_IRQn);
-	}else{
+	}
+	else{
 		__NOP();
 	}
 
@@ -154,32 +160,25 @@ void TIM2_IRQHandler(void){
 
 	/* LLamamos a la función que se debe encargar de hacer algo con esta interrupción*/
 	BasicTimer2_Callback();
-
 }
-
 void TIM3_IRQHandler(void){
 	/* Limpiamos la bandera que indica que la interrupción se ha generado */
 	ptrTimerUsed->SR &= ~TIM_SR_UIF;
 
 	/* LLamamos a la función que se debe encargar de hacer algo con esta interrupción*/
 	BasicTimer3_Callback();
-
 }
-
 void TIM4_IRQHandler(void){
-	/* Limpiamos la bandera que indica que la interrupción se ha generado */
+	/* Limpiamos la bandera que indica que la interrupción se ha generado. */
 	ptrTimerUsed->SR &= ~TIM_SR_UIF;
 
 	/* LLamamos a la función que se debe encargar de hacer algo con esta interrupción*/
 	BasicTimer4_Callback();
-
 }
-
 void TIM5_IRQHandler(void){
 	/* Limpiamos la bandera que indica que la interrupción se ha generado */
 	ptrTimerUsed->SR &= ~TIM_SR_UIF;
 
-	/* LLamamos a la función que se debe encargar de hacer algo con esta interrupción*/
+	/* LLamamos a la función que se debe encargar de hacer algo con esta interrupción.*/
 	BasicTimer5_Callback();
-
 }
