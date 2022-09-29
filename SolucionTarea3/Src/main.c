@@ -2,16 +2,18 @@
  ******************************************************************************
  * @file           : main.c
  * @author         : jfguerreroca
- * @name		   : Juan Felipe Guerrero Cataño
+ * @name           : Juan Felipe Guerrero Cataño
  * @brief          : Tarea 3
  ******************************************************************************
  *
  ******************************************************************************
  */
 
-/* Definimos las librerias que vamos a utilizar. En este caso agregamos una libreria llamada stdlib.h, para
+/* 
+ * Definimos las librerias que vamos a utilizar. En este caso agregamos una libreria llamada stdlib.h, para
  * utilizar la funcion rand(), que nos permitira generar numeros aleatorios.
  */
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -24,22 +26,31 @@
 
 USART_Handler_t 		handlerUSART1		= {0};
 
-BasicTimer_Handler_t 	handlerTimer2 		= {0};
+BasicTimer_Handler_t 		handlerTimer2 		= {0};
 
 GPIO_Handler_t 			handlerBlinkyLed 	= {0};
 GPIO_Handler_t			handlerUserButton	= {0};
 GPIO_Handler_t			handlerTxPin		= {0};
 
 // Definimos las variables que utilizaremos
+
 uint8_t blinky = 0;
 uint8_t data = 0;
 uint8_t ButtonStatus = 0;
 uint8_t flag = 0;
 
 // Definimos las funciones que vamos a utilizar
+
+//Funcion encargada de las interrupciones
+
 void TIM2_IRQHandler(void);
 
+//Funcion de estado con el User LED
+
+void statusLED(void);
+
 // Funcion principal del programa
+
 int main(void)
 {
 	/*
@@ -95,17 +106,14 @@ int main(void)
 
 	USART_Config(&handlerUSART1);
 
-	// Llamamos a la funcion que se encarga de atender las interrupciones
-
-	TIM2_IRQHandler();
-
-	/* Loop forever */
+	/* Ciclo infinito del main */
 	while(1){
-
+		
 		/*
 		 * Leemos el estado de la bandera definida en la funcion Callback (la cual es llamada por la funcion IRQHandler)
 		 * y con esta definimos si mandamos (cuando la bandera está activa) o no (cuando la bandera está abajo)
 		 * la variable data.
+		 * Con la bandera activada, llamamos la funcion para cambiar el estado del LED.
 		 * Con el estado del boton decidimos si esta variable será "constante" (cuando no se presiona el boton), o un
 		 * dato aleatorio (cuando dejamos presionado el boton).
 		 * El dato aleatorio se definio utilizando la funcion rand(), la cual arroja un dato aleatorio entre 0 y N, donde
@@ -120,6 +128,7 @@ int main(void)
 		ButtonStatus = GPIO_ReadPin(&handlerUserButton);
 
 		if (flag == 1){
+			void statusLED();			
 			if (ButtonStatus == 0){
 				data = rand() % 51;
 			}else{
@@ -133,13 +142,22 @@ int main(void)
 }
 
 /*
- * Definimos la funcion Callback para que cada 250 ms el UserLed cambie de estado (Hacer "blinky"),
- * indicando que el programa está funcionando correctamente.
- * Ademas, levantamos la bandera (flag=1) para que en el ciclo while de la funcion main se sepa que
+ * Definimos la funcion Callback para levantar la bandera (flag=1), para que en el ciclo while de la funcion main se sepa que
  * hay una interrupcion por atender.
  */
 
 void BasicTimer2_Callback(void){
+	flag = 1;
+}
+
+/* 
+ * Definimos la funcion de estado de LED, para que el UserLed cambie de estado (Hacer "blinky"),
+ * indicando que el programa está funcionando correctamente.
+ * En nuestro caso, como el timer está funcionando cada 250ms, el estado del LED cambiará con
+ * este periodo.
+ */		
+
+void statusLED(void){
 	blinky = !blinky;
 	    if(blinky){
 	        GPIO_WritePin(&handlerBlinkyLed, SET);
@@ -147,6 +165,4 @@ void BasicTimer2_Callback(void){
 	    else{
 	        GPIO_WritePin(&handlerBlinkyLed, RESET);
 	    }
-	flag = 1;
-
 }
