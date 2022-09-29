@@ -26,7 +26,7 @@
 
 USART_Handler_t 		handlerUSART1		= {0};
 
-BasicTimer_Handler_t 		handlerTimer2 		= {0};
+BasicTimer_Handler_t 	handlerTimer2 		= {0};
 
 GPIO_Handler_t 			handlerBlinkyLed 	= {0};
 GPIO_Handler_t			handlerUserButton	= {0};
@@ -117,7 +117,7 @@ int main(void)
 		 * Con el estado del boton decidimos si esta variable será "constante" (cuando no se presiona el boton), o un
 		 * dato aleatorio (cuando dejamos presionado el boton).
 		 * El dato aleatorio se definio utilizando la funcion rand(), la cual arroja un dato aleatorio entre 0 y N, donde
-		 * para nosotros N=50.
+		 * para nosotros N=59.
 		 *
 		 * La funcion tiene la siguiente estructura:
 		 * 		data = rand() % N+1; , donde N es el maximo del rango de numeros posibles.
@@ -128,9 +128,9 @@ int main(void)
 		ButtonStatus = GPIO_ReadPin(&handlerUserButton);
 
 		if (flag == 1){
-			void statusLED();			
+			statusLED();
 			if (ButtonStatus == 0){
-				data = rand() % 51;
+				data = rand() % 60;
 			}else{
 				data = 60;
 			}
