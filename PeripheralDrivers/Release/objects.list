@@ -1,0 +1,6 @@
+"./Src/AdcDriver.o"
+"./Src/BasicTimer.o"
+"./Src/GPIOxDriver.o"
+"./Src/USARTxDriver.o"
+"./Src/syscalls.o"
+"./Src/sysmem.o"

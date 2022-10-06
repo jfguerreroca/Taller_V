@@ -8,6 +8,8 @@
 #include <stm32f4xx.h>
 #include "USARTxDriver.h"
 
+uint8_t auxRxData = 0;
+
 /**
  * Configurando el puerto Serial...
  * Recordar que siempre se debe comenzar con activar la señal de reloj
@@ -134,6 +136,7 @@ void USART_Config(USART_Handler_t *ptrUsartHandler){
 	{
 		// Activamos la parte del sistema encargada de recibir
 		ptrUsartHandler->ptrUSARTx->CR1 |= USART_CR1_RE;
+		ptrUsartHandler->ptrUSARTx->CR1 |= USART_CR1_RXNEIE;
 		break;
 	}
 	case USART_MODE_RXTX:
@@ -141,6 +144,7 @@ void USART_Config(USART_Handler_t *ptrUsartHandler){
 		// Activamos ambas partes, tanto transmision como recepcion
 		ptrUsartHandler->ptrUSARTx->CR1 |= USART_CR1_TE;
 		ptrUsartHandler->ptrUSARTx->CR1 |= USART_CR1_RE;
+		ptrUsartHandler->ptrUSARTx->CR1 |= USART_CR1_RXNEIE;
 		break;
 	}
 	case USART_MODE_DISABLE:
@@ -168,6 +172,22 @@ void USART_Config(USART_Handler_t *ptrUsartHandler){
 	}
 }
 
+__attribute__((weak)) void usart2Rx_Callback(void){
+
+	__NOP();
+}
+
+/* Handler de la interrupción del USART
+ * acá deben estar todas las interrupciones asociadas: TX, RX, PE...
+ */
+void USART2_IRQHandler(void){
+	//Evaluamos si la interrupción que se dió es por RX
+	if (USART2->SR & USART_SR_RXNE){
+		auxRxData = (uint8_t) USART2->DR;
+		usart2Rx_Callback();
+	}
+}
+
 /* funcion para escribir un solo char */
 int writeChar(USART_Handler_t *ptrUsartHandler, int dataToSend ){
 	while( !(ptrUsartHandler->ptrUSARTx->SR & USART_SR_TXE)){
@@ -178,3 +198,15 @@ int writeChar(USART_Handler_t *ptrUsartHandler, int dataToSend ){
 
 	return dataToSend;
 }
+
+void writeMsg(USART_Handler_t *ptrUsartHandler, char *msgToSend ){
+	while (*msgToSend != '\0'){
+		writeChar(ptrUsartHandler, *msgToSend);
+		msgToSend++;
+	}
+}
+
+uint8_t getRxData(void){
+	return auxRxData;
+}
+
