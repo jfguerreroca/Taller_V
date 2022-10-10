@@ -551,10 +551,10 @@ void extInt_Config(EXTI_Config_t *extiConfig){
 	/* 4.0 Seleccionamos el tipo de flanco */
 	if(extiConfig->edgeType == EXTERNAL_INTERRUPT_FALLING_EDGE){
 		/* Falling Trigger selection register*/
-		EXTI -> FTSR |= 0x01 << (extiConfig->pGPIOHandler->GPIO_PinConfig.GPIO_PinNumber);
+		EXTI -> FTSR |= 0b01 << (extiConfig->pGPIOHandler->GPIO_PinConfig.GPIO_PinNumber);
 	}
 	else{
-		EXTI -> RTSR |= 0x01 << (extiConfig->pGPIOHandler->GPIO_PinConfig.GPIO_PinNumber);
+		EXTI -> RTSR |= 0b01 << (extiConfig->pGPIOHandler->GPIO_PinConfig.GPIO_PinNumber);
 	}
 
 	/* 5.0 Desactivo primero las interrupciones globales */
@@ -562,7 +562,7 @@ void extInt_Config(EXTI_Config_t *extiConfig){
 
 	/* 6.0 Activamos la interrupción del canal que estamos configurando */
 	// Interrupt Mask register
-	EXTI -> IMR |= 0x01 << (extiConfig->pGPIOHandler->GPIO_PinConfig.GPIO_PinNumber);
+	EXTI -> IMR |= 0b01 << (extiConfig->pGPIOHandler->GPIO_PinConfig.GPIO_PinNumber);
 
 	/* 6.1 Matriculamos la interrupción en el NVIC para el canal correspondiente,
 	 * donde el canal 0 corresponde al EXTI_0, canal 1 al EXTI_1, etc.

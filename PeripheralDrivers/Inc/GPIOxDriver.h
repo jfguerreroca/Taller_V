@@ -24,7 +24,8 @@ typedef struct
 
 }GPIO_PinConfig_t;
 
-/*Esta es la estructura que contiene dos elementos:
+/*
+ * Esta es la estructura que contiene dos elementos:
  * - la dirección del puerto que se esta utilizando ( la referencia del puerto)
  * - la configuracion especifica del PIN que se esta utilizando
  * */
