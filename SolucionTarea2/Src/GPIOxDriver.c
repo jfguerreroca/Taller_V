@@ -168,6 +168,7 @@ uint32_t GPIO_ReadPin(GPIO_Handler_t *pPinHandler){
 	 */
 	pinValue = pPinHandler->pGPIOx->IDR << (31 - (pPinHandler->GPIO_PinConfig.GPIO_PinNumber));
 	pinValue >>= 31;
+	// OK, pero bastante extraña la forma de hacerlo...
 
 	return pinValue;
 }

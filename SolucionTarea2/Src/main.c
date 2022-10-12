@@ -72,6 +72,8 @@ int main(void)
 			GPIO_WritePin(&*pPinHandler, RESET);
 		}
 	}
+	// Esta función corresponde al gpio driver
+	// ademas la estas creando dentro de otra función, lo cual no es correcto.
 
 	// Comprobamos el funcionamiento de la funcion Toggle con los pines usados en el primer punto
 	GPIOxTogglePin(&handlerUserPin1);
