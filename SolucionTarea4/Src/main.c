@@ -38,7 +38,7 @@ EXTI_Config_t			EXTI_Config			= {0};
 uint8_t blinky = 0;
 uint8_t data = 0;
 uint8_t ButtonStatus = 0;
-uint8_t flag = 0;
+uint8_t flagStatus = 0;
 
 // Definimos las funciones que vamos a utilizar
 
@@ -127,6 +127,11 @@ int main(void)
 	/* Ciclo infinito del main */
 	while(1){
 
+		if(flagStatus){
+			flagStatus = 0;
+			statusLED();
+		}
+
 
 
 	}
@@ -139,7 +144,7 @@ int main(void)
  */
 
 void BasicTimer2_Callback(void){
-	flag = 1;
+	flagStatus = 1;
 }
 
 /* 
