@@ -439,6 +439,7 @@ void numberSS(int number){
 		GPIO_WritePin(&handlerG, SET);
 
 	}
+	// Esto se podia hacer de forma mas elegante con un switch-case
 
 }
 
@@ -458,4 +459,5 @@ void statusLED(void){
 	        GPIO_WritePin(&handlerBlinkyLed, RESET);
 	    }
 }
+// Y para que esta el toogle?
 
