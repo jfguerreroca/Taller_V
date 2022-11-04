@@ -1,7 +1,7 @@
 /*
  * AdcDriver.h
  *
- *  Created on: October 3, 2022
+ *  Created on: Month XX, 2022
  *      Author: namontoy
  */
 
@@ -44,13 +44,36 @@
 #define ADC_SAMPLING_PERIOD_144_CYCLES	0b110;
 #define ADC_SAMPLING_PERIOD_480_CYCLES	0b111;
 
+#define ADC_EXT_ENABLE	1
+#define ADC_EXT_DISABLE	0
+
+#define ADC_EXT_EVENT_TIMER1_CH1	0
+#define ADC_EXT_EVENT_TIMER1_CH2	1
+#define ADC_EXT_EVENT_TIMER1_CH3	2
+#define ADC_EXT_EVENT_TIMER2_CH2	3
+#define ADC_EXT_EVENT_TIMER2_CH3	4
+#define ADC_EXT_EVENT_TIMER2_CH4	5
+#define ADC_EXT_EVENT_TIMER2_TRGO	6
+#define ADC_EXT_EVENT_TIMER3_CH3	7
+#define ADC_EXT_EVENT_TIMER3_TRGO	8
+#define ADC_EXT_EVENT_TIMER4_CH4	9
+#define ADC_EXT_EVENT_TIMER5_CH1	10
+#define ADC_EXT_EVENT_TIMER5_CH2	11
+#define ADC_EXT_EVENT_TIMER5_CH3	12
+#define ADC_EXT_EVENT_EXTI11		15
+
+
+
 typedef struct
 {
 	uint8_t		channel;		// Canal ADC que será utilizado para la conversión ADC
 	uint8_t		resolution;		// Precisión con la que el ADC hace la adquisición del dato
 	uint16_t	samplingPeriod;	// Tiempo deseado para hacer la adquisición del dato
 	uint8_t		dataAlignment;	// Alineación a la izquierda o a la derecha
-	uint16_t	adcData;			//Dato de la conversión
+	uint16_t	adcData;		// Dato de la conversión
+	uint8_t 	adcExternal;	// Activa o desactiva el evento del EXTI11
+	uint8_t		adcExtEvent;	// Qué evento queremos activar
+	uint8_t 	channels[];		// Arreglo que almacenará los datos en caso de multichannel
 }ADC_Config_t;
 
 void adc_Config(ADC_Config_t *adcConfig);
@@ -58,8 +81,9 @@ void configAnalogPin(uint8_t adcChannel);
 void adcComplete_Callback(void);
 void startSingleADC(void);
 void startContinousADC(void);
+// void adcConfigExternal(uint8_t estado);
 uint16_t getADC(void);
 
-//void ADC_ConfigMultichannel (ADC_Config_t *adcConfig, uint8_t numeroDeCanales);
+void ADC_ConfigMultichannel (ADC_Config_t *adcConfig, uint8_t numeroDeCanales);
 
 #endif /* INC_ADCDRIVER_H_ */

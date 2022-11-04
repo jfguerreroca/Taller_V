@@ -1,16 +1,17 @@
 /*
  * AdcDriver.c
  *
- *  Created on: October 3, 2022
+ *  Created on: XXXX , 2022
  *      Author: namontoy
  */
+
 #include "AdcDriver.h"
 #include "GPIOxDriver.h"
 
 GPIO_Handler_t handlerAdcPin = {0};
-uint16_t	adcRawData = 0;
+uint16_t	adcRawData 		 = 	0;
 
-void adc_Config(ADC_Config_t *adcConfig){
+void adc_Config(ADC_Config_t *adcConfig){	
 	/* 1. Configuramos el PinX para que cumpla la función de canal análogo deseado. */
 	configAnalogPin(adcConfig->channel);
 
@@ -24,27 +25,31 @@ void adc_Config(ADC_Config_t *adcConfig){
 	/* Comenzamos la configuración del ADC1 */
 	/* 3. Resolución del ADC */
 	switch(adcConfig->resolution){
-	case ADC_RESOLUTION_12_BIT:
+	case ADC_RESOLUTION_12_BIT: // (00)
 	{
-		ADC1->CR1 &= ~ADC_CR1_RES;
+		ADC1->CR1 &= ~ADC_CR1_RES_0;
+		ADC1->CR1 &= ~ADC_CR1_RES_1;
 		break;
 	}
 
 	case ADC_RESOLUTION_10_BIT:
 	{
-		ADC1->CR1 |= ADC_CR1_RES_0;
+		ADC1->CR1 |=  ADC_CR1_RES_0;
+		ADC1->CR1 &= ~ADC_CR1_RES_1;
 		break;
 	}
 
 	case ADC_RESOLUTION_8_BIT:
 	{
-		ADC1->CR1 |= ADC_CR1_RES_1;
+		ADC1->CR1 &= ~ADC_CR1_RES_0;
+		ADC1->CR1 |=  ADC_CR1_RES_1;
 		break;
 	}
 
 	case ADC_RESOLUTION_6_BIT:
 	{
-		ADC1->CR1 |= ADC_CR1_RES;
+		ADC1->CR1 |= ADC_CR1_RES_0;
+		ADC1->CR1 |= ADC_CR1_RES_1;
 		break;
 	}
 
@@ -73,12 +78,10 @@ void adc_Config(ADC_Config_t *adcConfig){
 
 	/* 7. Acá se debería configurar el sampling...*/
 	if(adcConfig->channel < ADC_CHANNEL_10){
-		// Configuracion para el Channel 0
-		ADC1->SMPR2 |= (adcConfig->samplingPeriod) << ADC_SMPR2_SMP0_Pos;
+		ADC1->SMPR2 |= (adcConfig->samplingPeriod << (3 * adcConfig->channel));
 	}
 	else{
-		// Configuracion para el Channel 10
-		ADC1->SMPR1 |= (adcConfig->samplingPeriod) << ADC_SMPR1_SMP10_Pos;
+		ADC1->SMPR1 |= (adcConfig->samplingPeriod << (3 * (adcConfig->channel - 10)));
 	}
 
 	/* 8. Configuramos la secuencia y cuantos elementos hay en la secuencia */
@@ -91,6 +94,8 @@ void adc_Config(ADC_Config_t *adcConfig){
 	/* 9. Configuramos el preescaler del ADC en 2:1 (el mas rápido que se puede tener */
 	ADC->CCR |= ADC_CCR_ADCPRE_0;
 
+
+	/* *********** INTERRUPCIONES *************/
 	/* 10. Desactivamos las interrupciones globales */
 	__disable_irq();
 
@@ -98,16 +103,32 @@ void adc_Config(ADC_Config_t *adcConfig){
 	ADC1->CR1 |= ADC_CR1_EOCIE;
 
 	/* 11a. Matriculamos la interrupción en el NVIC*/
-	NVIC_EnableIRQ(ADC_IRQn);
+	__NVIC_EnableIRQ(ADC_IRQn);
 	
 	/* 11b. Configuramos la prioridad para la interrupción ADC */
-	NVIC_SetPriority(ADC_IRQn, 4);
+	__NVIC_SetPriority(ADC_IRQn, 4);
 
 	/* 12. Activamos el modulo ADC */
 	ADC1->CR2 |= ADC_CR2_ADON;
 
 	/* 13. Activamos las interrupciones globales */
 	__enable_irq();
+
+
+// Función adcExtEnable
+	if(adcConfig->adcExternal == ADC_EXT_ENABLE){
+		// Activamos el evento externo, flanco de bajada
+		ADC1->CR2 |= ADC_CR2_EXTEN_1;
+		// Evento externo seleccionado para lanzar la conversión ADC ( evento en pin 11)
+		ADC1->CR2 |= (adcConfig->adcExtEvent << ADC_CR2_EXTSEL_Pos);
+	}
+	else if(adcConfig->adcExternal == ADC_EXT_DISABLE){
+		// Reset state
+		ADC1->CR2 &= ~(0b11 << ADC_CR2_EXTEN_Pos);
+	}
+	else{
+		__NOP();
+	}
 }
 
 /*
@@ -122,7 +143,7 @@ void startSingleADC(void){
 	ADC1->CR2 &= ~ADC_CR2_CONT;
 	
 	/* Limpiamos el bit del overrun (CR1) */
-	ADC1->SR &= ~ADC_SR_OVR;
+	ADC1->CR1 &= ~ADC_CR1_OVRIE;
 	
 	/* Iniciamos un ciclo de conversión ADC (CR2)*/
 	ADC1->CR2 |= ADC_CR2_SWSTART;
@@ -190,108 +211,115 @@ void configAnalogPin(uint8_t adcChannel) {
 
 	case ADC_CHANNEL_0: {
 		// Es el pin PA0
-		handlerAdcPin.pGPIOx 						= GPIOA;
+		handlerAdcPin.pGPIOx = GPIOA;
 		handlerAdcPin.GPIO_PinConfig.GPIO_PinNumber = PIN_0;
 		// Nota: Para el ejercicio inicial solo se necesita este canal, los demas
 		// se necesitan para trabajos posteriores.
 		break;
 	}
-		;
-
 	case ADC_CHANNEL_1: {
-		// Es el pin PA0
-		handlerAdcPin.pGPIOx 						= GPIOA;
+		// Es el pin PA1
+		handlerAdcPin.pGPIOx = GPIOA;
 		handlerAdcPin.GPIO_PinConfig.GPIO_PinNumber = PIN_1;
-
 		break;
-	}
 
+	}
 	case ADC_CHANNEL_2: {
-		handlerAdcPin.pGPIOx 						= GPIOA;
+		// Es el pin PA2
+		handlerAdcPin.pGPIOx = GPIOA;
 		handlerAdcPin.GPIO_PinConfig.GPIO_PinNumber = PIN_2;
-
 		break;
-	}
 
+	}
 	case ADC_CHANNEL_3: {
-		handlerAdcPin.pGPIOx 						= GPIOA;
+		//PIN PA3
+		handlerAdcPin.pGPIOx = GPIOA;
 		handlerAdcPin.GPIO_PinConfig.GPIO_PinNumber = PIN_3;
-
 		break;
-	}
 
+	}
 	case ADC_CHANNEL_4: {
-		handlerAdcPin.pGPIOx 						= GPIOA;
+		// Es el pin PA4
+		handlerAdcPin.pGPIOx = GPIOA;
 		handlerAdcPin.GPIO_PinConfig.GPIO_PinNumber = PIN_4;
-
 		break;
-	}
 
+	}
 	case ADC_CHANNEL_5: {
-		handlerAdcPin.pGPIOx 						= GPIOA;
+		// Es el pin PA5
+		handlerAdcPin.pGPIOx = GPIOA;
 		handlerAdcPin.GPIO_PinConfig.GPIO_PinNumber = PIN_5;
-		
+
 		break;
 	}
 	case ADC_CHANNEL_6: {
-		handlerAdcPin.pGPIOx 						= GPIOA;
+		// Es el pin PA6
+		handlerAdcPin.pGPIOx = GPIOA;
 		handlerAdcPin.GPIO_PinConfig.GPIO_PinNumber = PIN_6;
-		
+
 		break;
 	}
 	case ADC_CHANNEL_7: {
-		handlerAdcPin.pGPIOx 						= GPIOA;
+		// Es el pin PA7
+		handlerAdcPin.pGPIOx = GPIOA;
 		handlerAdcPin.GPIO_PinConfig.GPIO_PinNumber = PIN_7;
-		
+
 		break;
 	}
 	case ADC_CHANNEL_8: {
 		//Es el pin PB0
-		handlerAdcPin.pGPIOx 						= GPIOB;
+		handlerAdcPin.pGPIOx = GPIOB;
 		handlerAdcPin.GPIO_PinConfig.GPIO_PinNumber = PIN_0;
 		break;
 	}
 	case ADC_CHANNEL_9: {
-		handlerAdcPin.pGPIOx 						= GPIOB;
+		// Es el pin PB1
+		handlerAdcPin.pGPIOx = GPIOB;
 		handlerAdcPin.GPIO_PinConfig.GPIO_PinNumber = PIN_1;
-		
 		break;
+
 	}
 	case ADC_CHANNEL_10: {
-		handlerAdcPin.pGPIOx 						= GPIOC;
+		// Es el pin PC0
+		handlerAdcPin.pGPIOx = GPIOC;
 		handlerAdcPin.GPIO_PinConfig.GPIO_PinNumber = PIN_0;
-		
 		break;
+
 	}
 	case ADC_CHANNEL_11: {
-		handlerAdcPin.pGPIOx 						= GPIOC;
+		// Es el pin PC1
+		handlerAdcPin.pGPIOx = GPIOC;
 		handlerAdcPin.GPIO_PinConfig.GPIO_PinNumber = PIN_1;
-		
 		break;
+
 	}
 	case ADC_CHANNEL_12: {
-		handlerAdcPin.pGPIOx 						= GPIOC;
+		// Es el pin PC2
+		handlerAdcPin.pGPIOx = GPIOC;
 		handlerAdcPin.GPIO_PinConfig.GPIO_PinNumber = PIN_2;
-		
 		break;
+
 	}
 	case ADC_CHANNEL_13: {
-		handlerAdcPin.pGPIOx 						= GPIOC;
+		// Es el pin PC3
+		handlerAdcPin.pGPIOx = GPIOC;
 		handlerAdcPin.GPIO_PinConfig.GPIO_PinNumber = PIN_3;
-		
 		break;
+
 	}
 	case ADC_CHANNEL_14: {
-		handlerAdcPin.pGPIOx 						= GPIOC;
+		// Es el pin PC4
+		handlerAdcPin.pGPIOx = GPIOC;
 		handlerAdcPin.GPIO_PinConfig.GPIO_PinNumber = PIN_4;
-		
 		break;
+
 	}
 	case ADC_CHANNEL_15: {
-		handlerAdcPin.pGPIOx 						= GPIOC;
+		// Es el pin PC5
+		handlerAdcPin.pGPIOx = GPIOC;
 		handlerAdcPin.GPIO_PinConfig.GPIO_PinNumber = PIN_5;
-		
 		break;
+
 	}
 	default: {
 		break;
@@ -302,4 +330,138 @@ void configAnalogPin(uint8_t adcChannel) {
 	// carga la configuración con el driver del GPIOx
 	handlerAdcPin.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_ANALOG;
 	GPIO_Config(&handlerAdcPin);
+}
+
+void ADC_ConfigMultichannel (ADC_Config_t *adcConfig, uint8_t numeroDeCanales){
+	/* 1. Configuramos el PinX para que cumpla la función de canal análogo deseado. */
+	for(uint8_t i = 0; i < numeroDeCanales; i++){
+		configAnalogPin(adcConfig->channels[i]);
+	}
+
+	/* 2. Activamos la señal de reloj para el periférico ADC1 (bus APB2)*/
+	RCC->APB2ENR |= RCC_APB2ENR_ADC1EN;
+
+	// Limpiamos los registros antes de comenzar a configurar
+	ADC1->CR1 = 0;
+	ADC1->CR2 = 0;
+
+	/* Comenzamos la configuración del ADC1 */
+	/* 3. Resolución del ADC */
+	switch(adcConfig->resolution){
+	case ADC_RESOLUTION_12_BIT: // (00)
+	{
+		ADC1->CR1 &= ~ADC_CR1_RES_0;
+		ADC1->CR1 &= ~ADC_CR1_RES_1;
+		break;
+	}
+
+	case ADC_RESOLUTION_10_BIT:
+	{
+		ADC1->CR1 |=  ADC_CR1_RES_0;
+		ADC1->CR1 &= ~ADC_CR1_RES_1;
+		break;
+	}
+
+	case ADC_RESOLUTION_8_BIT:
+	{
+		ADC1->CR1 &= ~ADC_CR1_RES_0;
+		ADC1->CR1 |=  ADC_CR1_RES_1;
+		break;
+	}
+
+	case ADC_RESOLUTION_6_BIT:
+	{
+		ADC1->CR1 |= ADC_CR1_RES_0;
+		ADC1->CR1 |= ADC_CR1_RES_1;
+		break;
+	}
+
+	default:
+	{
+		break;
+	}
+	}
+
+	/* 4. Configuramos el modo Scan como activado */
+	ADC1->CR1 |= ADC_CR1_SCAN;
+
+	/* 5. Configuramos la alineación de los datos (derecha o izquierda) */
+	if(adcConfig->dataAlignment == ADC_ALIGNMENT_RIGHT){
+		// Alineación a la derecha (esta es la forma "natural")
+		ADC1->CR2 &= ~ADC_CR2_ALIGN;
+	}
+	else{
+
+		// Alineación a la izquierda (para algunos cálculos matemáticos)
+		ADC1->CR2 |= ADC_CR2_ALIGN;
+	}
+
+	/* 6. Desactivamos el "continuos mode" */
+	ADC1->CR2 &= ~ADC_CR2_CONT;
+
+	/* 7. Acá se debería configurar el sampling...*/
+	for(uint8_t i = 0; i < numeroDeCanales; i++){
+		if (adcConfig->channels[i] < ADC_CHANNEL_10) {
+			ADC1->SMPR2 |= (adcConfig->samplingPeriod << (3 * (adcConfig->channels[i])));
+		} else {
+			ADC1->SMPR1 |= ((adcConfig->samplingPeriod) << ((3 * (adcConfig->channels[i])) - 10));
+		}
+	}
+
+	/* 8. Configuramos la secuencia y cuantos elementos hay en la secuencia */
+	// Al hacerlo todo 0, estamos seleccionando solo 1 elemento en el conteo de la secuencia
+	ADC1->SQR1 = (numeroDeCanales - 1) << ADC_SQR1_L_Pos;
+
+	// Asignamos el canal de la conversión a la primera posición en la secuencia
+	for (uint8_t i = 0; i < numeroDeCanales; i++) {
+
+		if(i < 7){
+			ADC1->SQR3 |= (adcConfig->channels[i] << i * 5);
+		} else if (i >= 7 && i < 13){
+			ADC1->SQR2 |= (adcConfig->channels[i] << (i - 7) * 5);
+		} else if (i >= 13){
+			ADC1->SQR1 |= (adcConfig->channels[i] << (i - 13) * 5);
+		} else{
+			__NOP();
+		}
+	}
+
+	/* 9. Configuramos el preescaler del ADC en 2:1 (el mas rápido que se puede tener */
+	ADC->CCR |= ADC_CCR_ADCPRE_0;
+
+
+	/* *********** INTERRUPCIONES *************/
+	/* 10. Desactivamos las interrupciones globales */
+	__disable_irq();
+
+	/* 11. Activamos la interrupción debida a la finalización de una conversión EOC (CR1)*/
+	ADC1->CR1 |= ADC_CR1_EOCIE;
+
+	/* 11a. Matriculamos la interrupción en el NVIC*/
+	__NVIC_EnableIRQ(ADC_IRQn);
+
+	/* 11b. Configuramos la prioridad para la interrupción ADC */
+	__NVIC_SetPriority(ADC_IRQn, 4);
+
+	/* 12. Activamos el modulo ADC */
+	ADC1->CR2 |= ADC_CR2_ADON;
+
+	/* 13. Activamos las interrupciones globales */
+	__enable_irq();
+
+
+	/* 14. Configuramos la opción de tener Exti o no */
+	if(adcConfig->adcExternal == ADC_EXT_ENABLE){
+		// Activamos el evento externo, flanco de bajada
+		ADC1->CR2 |= ADC_CR2_EXTEN_1;
+		// Evento externo seleccionado para lanzar la conversión ADC ( evento en pin 11)
+		ADC1->CR2 |= (adcConfig->adcExtEvent << ADC_CR2_EXTSEL_Pos);
+	}
+	else if(adcConfig->adcExternal == ADC_EXT_DISABLE){
+		// Reset state
+		ADC1->CR2 &= ~(0b11 << ADC_CR2_EXTEN_Pos);
+	}
+	else{
+		__NOP();
+	}
 }

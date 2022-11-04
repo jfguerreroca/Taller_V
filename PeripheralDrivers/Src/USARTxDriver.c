@@ -117,6 +117,13 @@ void USART_Config(USART_Handler_t *ptrUsartHandler){
 		ptrUsartHandler->ptrUSARTx->BRR = 0x0341;
 	}
 
+	else if (ptrUsartHandler->USART_Config.USART_baudrate == USART_BAUDRATE_57600) {
+		// El valor a cargar es 17.375 -> Mantiza = 17,fraction = 0.375
+		// Mantiza = 17 = 0x11, fraction = 16 * 0.375 = 6
+		// Valor a cargar 0x0116
+		ptrUsartHandler->ptrUSARTx->BRR = 0x0116;
+	}
+
 	else if(ptrUsartHandler->USART_Config.USART_baudrate == USART_BAUDRATE_115200){
 		// El valor a cargar es 8.6875 -> Mantiza = 8,fraction = 0.6875
 		// Mantiza = 8 = 0x8, fraction = 16 * 0.6875 = 11
