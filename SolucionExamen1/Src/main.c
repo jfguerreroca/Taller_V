@@ -103,7 +103,7 @@ int main(void)
 	while(1){
 
 		Xvalue = -2000;
-		Yvalue = 1;
+		Yvalue = 0;
 		zfeo = duty_ServoAngle(Xvalue,Yvalue);
 
 	}
@@ -115,13 +115,13 @@ uint8_t duty_ServoAngle(int16_t Xvalue, int16_t Yvalue){
 	PI = acos(-1);
 	if(Xvalue > 0){
 		angle = atan(Yvalue/Xvalue);
-		duty = (uint8_t) (angle/(2*PI))*10;
+		duty = (uint8_t) (angle/(PI))*10;
 	}else if(Xvalue < 0){
 		angle = (2*PI) - atan(Yvalue/-Xvalue);
-		duty = (uint8_t) (angle/(2*PI))*10;
+		duty = (uint8_t) (angle/(PI))*10;
 	}else{
 		angle = atan(Yvalue/(Xvalue+1));
-		duty = (uint8_t) (angle/(2*PI))*10;
+		duty = (uint8_t) (angle/(PI))*10;
 	}
 	return duty;
 }
