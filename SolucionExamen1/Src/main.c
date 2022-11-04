@@ -36,14 +36,13 @@ ADC_Config_t  			adcAXIS_XY     			= {0};
 
 int16_t Xvalue = 0;
 int16_t Yvalue = 0;
-float PI = 0;
-float angle = 0;
-uint8_t duty = 0;
-uint8_t zfeo = 0;
+double PI = 0;
+double angle = 0;
+uint16_t zfeo = 0;
 
 // Definimos las funciones que vamos a utilizar:
 
-uint8_t duty_ServoAngle(int16_t, int16_t);
+double ServoAngle(int16_t, int16_t);
 
 //Funcion de estado con el User LED
 
@@ -103,27 +102,24 @@ int main(void)
 	while(1){
 
 		Xvalue = -2000;
-		Yvalue = 0;
-		zfeo = duty_ServoAngle(Xvalue,Yvalue);
+		Yvalue = 200;
+		zfeo = ServoAngle(Xvalue,Yvalue);
 
 	}
 
 	return 0;
 }
 
-uint8_t duty_ServoAngle(int16_t Xvalue, int16_t Yvalue){
+double ServoAngle(int16_t Xvalue, int16_t Yvalue){
 	PI = acos(-1);
-	if(Xvalue > 0){
-		angle = atan(Yvalue/Xvalue);
-		duty = (uint8_t) (angle/(PI))*10;
-	}else if(Xvalue < 0){
-		angle = (2*PI) - atan(Yvalue/-Xvalue);
-		duty = (uint8_t) (angle/(PI))*10;
-	}else{
-		angle = atan(Yvalue/(Xvalue+1));
-		duty = (uint8_t) (angle/(PI))*10;
+	if(Xvalue > 0 && Yvalue >= 0){
+		angle = (atan(Yvalue/Xvalue))*180/PI;
+	}else if(Xvalue < 0 && Yvalue >= 0){
+		angle = ((PI) - atan(Yvalue/-Xvalue))*180/PI;
+	}else if(Xvalue == 0 && Yvalue >= 0){
+		angle = 90;
 	}
-	return duty;
+	return angle;
 }
 
 void statusLED(void){
