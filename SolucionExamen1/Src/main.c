@@ -38,7 +38,7 @@ int16_t Xvalue = 0;
 int16_t Yvalue = 0;
 double PI = 0;
 double angle = 0;
-uint16_t zfeo = 0;
+uint8_t duty = 0;
 
 // Definimos las funciones que vamos a utilizar:
 
@@ -100,11 +100,7 @@ int main(void)
 
 	/* Ciclo infinito del main */
 	while(1){
-
-		Xvalue = -2000;
-		Yvalue = 200;
-		zfeo = ServoAngle(Xvalue,Yvalue);
-
+		duty = ServoAngle(0, 2000);
 	}
 
 	return 0;
@@ -112,12 +108,16 @@ int main(void)
 
 double ServoAngle(int16_t Xvalue, int16_t Yvalue){
 	PI = acos(-1);
-	if(Xvalue > 0 && Yvalue >= 0){
-		angle = (atan(Yvalue/Xvalue))*180/PI;
-	}else if(Xvalue < 0 && Yvalue >= 0){
-		angle = ((PI) - atan(Yvalue/-Xvalue))*180/PI;
-	}else if(Xvalue == 0 && Yvalue >= 0){
-		angle = 90;
+	if(Xvalue > 0 && Yvalue > 0){
+		angle = atan(Yvalue/Xvalue)*(180/PI);
+	}else if(Xvalue < 0 && Yvalue > 0){
+		angle = 180 - (atan(Yvalue/(-Xvalue))*(180/PI));
+	}else if(Xvalue < 0 && Yvalue <= 0){
+		angle = 180 + (atan((-Yvalue)/(-Xvalue))*(180/PI));
+	}else if(Xvalue > 0 && Yvalue <= 0){
+		angle = 360 - (atan((-Yvalue)/(Xvalue))*(180/PI));
+	}else if(Xvalue == 0 && Yvalue == 0){
+		angle = 0;
 	}
 	return angle;
 }
