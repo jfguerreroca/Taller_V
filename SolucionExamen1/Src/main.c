@@ -10,6 +10,9 @@
  */
 
 #include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include <stdbool.h>
 #include <math.h>
 #include "stm32f4xx.h"
@@ -29,24 +32,41 @@ BasicTimer_Handler_t 	handlerTimer2 			= {0};
 
 GPIO_Handler_t 			handlerBlinkyLed 		= {0};
 GPIO_Handler_t			handlerTxPin			= {0};
+GPIO_Handler_t			handlerRxPin			= {0};
 
 ADC_Config_t  			adcAXIS_XY     			= {0};
 
 // Definimos las variables que utilizaremos
 
-int16_t Xvalue = 0;
-int16_t Yvalue = 0;
 double PI = 0;
 double angle = 0;
-uint8_t duty = 0;
+
+bool adcIsComplete 				= false;
+
+int16_t adcData				 	= 0;
+int16_t XY[2]					= {0};
+uint8_t rxData 					= 0;
+uint8_t XY_indicator			= 0;
+uint8_t flagStatus 				= 0;
+uint8_t flagAdc 				= 0;
+
+char bufferData[64] 			= {0};
+
+char greetingMsg[] = "USART funciona hehehe siuuuu \n" ;
 
 // Definimos las funciones que vamos a utilizar:
+
+//Funcion que retorna el angulo del servomotor
 
 double ServoAngle(int16_t, int16_t);
 
 //Funcion de estado con el User LED
 
 void statusLED(void);
+
+//Funcion para inicializar las configuraciones del sistema
+
+void InitSystem(void);
 
 // Funcion principal del programa
 
@@ -55,9 +75,50 @@ int main(void)
 	/*
 	 * Cargamos las configuraciones de cada periferico a utilizar:
 	 *
-	 * 		-
+	 * 		- 2 GPIO para la transmision Serial RXTX por el USART6
+	 * 		- 1 GPIO para el control del Blinky
+	 * 		- 1 timer, el TIM2 encargado del Blinky
+	 * 		- 1 Usart encargado de la comunicacion serial (USART6)
+	 * 		- 1 ADC, de manera multi canal, para la lectura de los ejes X y Y del joystick
 	 *
 	 */
+
+	InitSystem();
+
+	writeChar(&handlerUSART6, ' ');
+
+	/* Ciclo infinito del main */
+	while(1){
+
+		if(flagStatus){
+			flagStatus = 0;
+			statusLED();
+		}
+
+		if(rxData != '\0') {
+			writeChar(&handlerUSART6, rxData);
+			if(rxData == 'm'){
+				writeMsg(&handlerUSART6, greetingMsg);
+			}
+			if(rxData == 's'){
+				startSingleADC();
+			}
+			rxData = '\0';
+		}
+
+		if(adcIsComplete == true){
+			sprintf(bufferData, "ADC X = %d ADC Y = %d \n\r", XY[0], XY[1]);
+			writeMsg(&handlerUSART6, bufferData);
+			adcIsComplete = false;
+		}else{
+			__NOP();
+		}
+	}
+
+	return 0;
+}
+
+void InitSystem(void){
 
 	handlerBlinkyLed.pGPIOx = GPIOA;
 	handlerBlinkyLed.GPIO_PinConfig.GPIO_PinNumber 				= PIN_5;
@@ -67,14 +128,41 @@ int main(void)
 	handlerBlinkyLed.GPIO_PinConfig.GPIO_PinPuPdControl 		= GPIO_PUPDR_NOTHING;
 	GPIO_Config(&handlerBlinkyLed);
 
+//	handlerTxPin.pGPIOx = GPIOA;
+//	handlerTxPin.GPIO_PinConfig.GPIO_PinNumber 					= PIN_11;
+//	handlerTxPin.GPIO_PinConfig.GPIO_PinMode 					= GPIO_MODE_ALTFN;
+//	handlerTxPin.GPIO_PinConfig.GPIO_PinOPType 					= GPIO_OTYPE_PUSHPULL;
+//	handlerTxPin.GPIO_PinConfig.GPIO_PinSpeed 					= GPIO_OSPEED_FAST;
+//	handlerTxPin.GPIO_PinConfig.GPIO_PinPuPdControl 			= GPIO_PUPDR_NOTHING;
+//	handlerTxPin.GPIO_PinConfig.GPIO_PinAltFunMode				= AF8;
+//	GPIO_Config(&handlerTxPin);
+//
+//	handlerRxPin.pGPIOx = GPIOA;
+//	handlerRxPin.GPIO_PinConfig.GPIO_PinNumber 					= PIN_12;
+//	handlerRxPin.GPIO_PinConfig.GPIO_PinMode 					= GPIO_MODE_ALTFN;
+//	handlerRxPin.GPIO_PinConfig.GPIO_PinOPType 					= GPIO_OTYPE_PUSHPULL;
+//	handlerRxPin.GPIO_PinConfig.GPIO_PinSpeed 					= GPIO_OSPEED_FAST;
+//	handlerRxPin.GPIO_PinConfig.GPIO_PinPuPdControl 			= GPIO_PUPDR_NOTHING;
+//	handlerRxPin.GPIO_PinConfig.GPIO_PinAltFunMode				= AF8;
+//	GPIO_Config(&handlerRxPin);
+
 	handlerTxPin.pGPIOx = GPIOA;
-	handlerTxPin.GPIO_PinConfig.GPIO_PinNumber 					= PIN_11;
+	handlerTxPin.GPIO_PinConfig.GPIO_PinNumber 					= PIN_2;
 	handlerTxPin.GPIO_PinConfig.GPIO_PinMode 					= GPIO_MODE_ALTFN;
 	handlerTxPin.GPIO_PinConfig.GPIO_PinOPType 					= GPIO_OTYPE_PUSHPULL;
 	handlerTxPin.GPIO_PinConfig.GPIO_PinSpeed 					= GPIO_OSPEED_FAST;
 	handlerTxPin.GPIO_PinConfig.GPIO_PinPuPdControl 			= GPIO_PUPDR_NOTHING;
-	handlerTxPin.GPIO_PinConfig.GPIO_PinAltFunMode				= AF8;
+	handlerTxPin.GPIO_PinConfig.GPIO_PinAltFunMode				= AF7;
 	GPIO_Config(&handlerTxPin);
+
+	handlerRxPin.pGPIOx = GPIOA;
+	handlerRxPin.GPIO_PinConfig.GPIO_PinNumber 					= PIN_3;
+	handlerRxPin.GPIO_PinConfig.GPIO_PinMode 					= GPIO_MODE_ALTFN;
+	handlerRxPin.GPIO_PinConfig.GPIO_PinOPType 					= GPIO_OTYPE_PUSHPULL;
+	handlerRxPin.GPIO_PinConfig.GPIO_PinSpeed 					= GPIO_OSPEED_FAST;
+	handlerRxPin.GPIO_PinConfig.GPIO_PinPuPdControl 			= GPIO_PUPDR_NOTHING;
+	handlerRxPin.GPIO_PinConfig.GPIO_PinAltFunMode				= AF7;
+	GPIO_Config(&handlerRxPin);
 
 	handlerTimer2.ptrTIMx 										= TIM2;
 	handlerTimer2.TIMx_Config.TIMx_mode 						= BTIMER_MODE_UP;
@@ -84,8 +172,8 @@ int main(void)
 	BasicTimer_Config(&handlerTimer2);
 	startTimer(&handlerTimer2);
 
-	handlerUSART6.ptrUSARTx 									= USART6;
-	handlerUSART6.USART_Config.USART_mode 						= USART_MODE_TX;
+	handlerUSART6.ptrUSARTx 									= USART2;
+	handlerUSART6.USART_Config.USART_mode 						= USART_MODE_RXTX;
 	handlerUSART6.USART_Config.USART_baudrate 					= USART_BAUDRATE_57600;
 	handlerUSART6.USART_Config.USART_datasize 					= USART_DATASIZE_9BIT;
 	handlerUSART6.USART_Config.USART_parity 					= USART_PARITY_ODD;
@@ -98,12 +186,26 @@ int main(void)
 	adcAXIS_XY.samplingPeriod    								= ADC_SAMPLING_PERIOD_28_CYCLES;
 	ADC_ConfigMultichannel(&adcAXIS_XY, 2);
 
-	/* Ciclo infinito del main */
-	while(1){
-		duty = ServoAngle(0, 2000);
-	}
+}
 
-	return 0;
+void BasicTimer2_Callback(void){
+	flagStatus = 1;
+}
+
+void usart2Rx_Callback(void){
+	rxData = getRxData();
+}
+
+void adcComplete_Callback(void){
+	XY_indicator++;
+	adcData = getADC();
+	if(XY_indicator == 1){
+		XY[0] = adcData;
+	}else if(XY_indicator == 2){
+		XY[1] = adcData;
+		adcIsComplete = true;
+		XY_indicator = 0;
+	}
 }
 
 double ServoAngle(int16_t Xvalue, int16_t Yvalue){
@@ -118,6 +220,8 @@ double ServoAngle(int16_t Xvalue, int16_t Yvalue){
 		angle = 360 - (atan((-Yvalue)/(Xvalue))*(180/PI));
 	}else if(Xvalue == 0 && Yvalue == 0){
 		angle = 0;
+	}else if(Xvalue == 0 && Yvalue != 0){
+		angle = 90;
 	}
 	return angle;
 }
