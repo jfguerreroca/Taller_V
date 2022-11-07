@@ -4,8 +4,6 @@
  *  Created on: Aug 29, 2022
  *      Author: felipe
  *
- * Aquí escribiré el control para que sea lo más genérico posible, de forma independiente del puerto GPIO
- * y el pin seleccionado, para que el programa se ejecute y configure todos de forma correcta
  */
 
 #include "GPIOxDriver.h"

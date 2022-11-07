@@ -3,8 +3,7 @@
  *
  *  Created on: 29 ago 2022
  *      Author: Felipe
- * Este programa se encarga de las definiciones relacionadas unicamente con el
- * debido manejo y control del periferico GPIOx (funciones del controlador).
+ *
  */
 
 #ifndef GPIOXDRIVER_H_

@@ -1,17 +1,16 @@
 /*
  * AdcDriver.c
  *
- *  Created on: XXXX , 2022
+ *  Created on: Month XX, 2022
  *      Author: namontoy
  */
-
 #include "AdcDriver.h"
 #include "GPIOxDriver.h"
 
 GPIO_Handler_t handlerAdcPin = {0};
 uint16_t	adcRawData 		 = 	0;
 
-void adc_Config(ADC_Config_t *adcConfig){	
+void adc_Config(ADC_Config_t *adcConfig){
 	/* 1. Configuramos el PinX para que cumpla la función de canal análogo deseado. */
 	configAnalogPin(adcConfig->channel);
 
@@ -77,11 +76,11 @@ void adc_Config(ADC_Config_t *adcConfig){
 	ADC1->CR2 &= ~ADC_CR2_CONT;
 
 	/* 7. Acá se debería configurar el sampling...*/
-	if(adcConfig->channel < ADC_CHANNEL_10){
+	if(adcConfig->channel < ADC_CHANNEL_9){
 		ADC1->SMPR2 |= (adcConfig->samplingPeriod << (3 * adcConfig->channel));
 	}
 	else{
-		ADC1->SMPR1 |= (adcConfig->samplingPeriod << (3 * (adcConfig->channel - 10)));
+		ADC1->SMPR1 |= (adcConfig->samplingPeriod << (3 * adcConfig->channel));
 	}
 
 	/* 8. Configuramos la secuencia y cuantos elementos hay en la secuencia */
@@ -95,7 +94,7 @@ void adc_Config(ADC_Config_t *adcConfig){
 	ADC->CCR |= ADC_CCR_ADCPRE_0;
 
 
-	/* *********** INTERRUPCIONES *************/
+	/* ** INTERRUPCIONES **/
 	/* 10. Desactivamos las interrupciones globales */
 	__disable_irq();
 
@@ -104,7 +103,7 @@ void adc_Config(ADC_Config_t *adcConfig){
 
 	/* 11a. Matriculamos la interrupción en el NVIC*/
 	__NVIC_EnableIRQ(ADC_IRQn);
-	
+
 	/* 11b. Configuramos la prioridad para la interrupción ADC */
 	__NVIC_SetPriority(ADC_IRQn, 4);
 
@@ -125,6 +124,7 @@ void adc_Config(ADC_Config_t *adcConfig){
 	else if(adcConfig->adcExternal == ADC_EXT_DISABLE){
 		// Reset state
 		ADC1->CR2 &= ~(0b11 << ADC_CR2_EXTEN_Pos);
+		// ¿Se debe seleccionar algún evento?
 	}
 	else{
 		__NOP();
@@ -136,21 +136,21 @@ void adc_Config(ADC_Config_t *adcConfig){
  * una conversion ADC.
  * Al terminar la conversion, el sistema lanza una interrupción y el dato es leido en la
  * función callback, utilizando la funciona getADC().
- * 
+ *
  * */
 void startSingleADC(void){
 	/* Desactivamos el modo continuo de ADC */
 	ADC1->CR2 &= ~ADC_CR2_CONT;
-	
+
 	/* Limpiamos el bit del overrun (CR1) */
 	ADC1->CR1 &= ~ADC_CR1_OVRIE;
-	
+
 	/* Iniciamos un ciclo de conversión ADC (CR2)*/
 	ADC1->CR2 |= ADC_CR2_SWSTART;
 
 }
 
-/* 
+/*
  * Esta función habilita la conversion ADC de forma continua.
  * Una vez ejecutada esta función, el sistema lanza una nueva conversion ADC cada vez que
  * termina, sin necesidad de utilizar para cada conversion el bit SWSTART del registro CR2.
@@ -167,7 +167,7 @@ void startContinousADC(void){
 
 }
 
-/* 
+/*
  * Función que retorna el ultimo dato adquirido por la ADC
  * La idea es que esta función es llamada desde la función callback, de forma que
  * siempre se obtiene el valor mas actual de la conversión ADC.
@@ -178,8 +178,8 @@ uint16_t getADC(void){
 	return adcRawData;
 }
 
-/* 
- * Esta es la ISR de la interrupción por conversión ADC 
+/*
+ * Esta es la ISR de la interrupción por conversión ADC
  */
 void ADC_IRQHandler(void){
 	// Evaluamos que se dio la interrupción por conversión ADC
@@ -195,11 +195,11 @@ void ADC_IRQHandler(void){
 }
 
 /* Función debil, que debe ser sobreescrita en el main. */
-__attribute__ ((weak)) void adcComplete_Callback(void){
+__attribute__((weak)) void adcComplete_Callback(void){
 	__NOP();
 }
 
-/* 
+/*
  * Con esta función configuramos que pin deseamos que funcione como canal ADC
  * Esta funcion trabaja con el GPIOxDriver, por lo cual requiere que se incluya
  * dicho driver.
@@ -332,6 +332,24 @@ void configAnalogPin(uint8_t adcChannel) {
 	GPIO_Config(&handlerAdcPin);
 }
 
+//void adcConfigExternal(){
+//	if(1){
+//		// Activamos el evento externo, flanco de bajada
+//		ADC1->CR2 |= ADC_CR2_EXTEN_1;
+//		// Evento externo seleccionado para lanzar la conversión ADC ( evento en pin 11)
+//		ADC1->CR2 |= (0xF << ADC_CR2_EXTSEL_Pos);
+//	}
+//	else if(0){
+//		// Reset state
+//		ADC1->CR2 &= ~(0b11 << ADC_CR2_EXTEN_Pos);
+//  }
+//	else{
+//		__NOP();
+//	}
+//}
+
+
+// ** MULTICANAL ***
 void ADC_ConfigMultichannel (ADC_Config_t *adcConfig, uint8_t numeroDeCanales){
 	/* 1. Configuramos el PinX para que cumpla la función de canal análogo deseado. */
 	for(uint8_t i = 0; i < numeroDeCanales; i++){
@@ -401,7 +419,7 @@ void ADC_ConfigMultichannel (ADC_Config_t *adcConfig, uint8_t numeroDeCanales){
 
 	/* 7. Acá se debería configurar el sampling...*/
 	for(uint8_t i = 0; i < numeroDeCanales; i++){
-		if (adcConfig->channels[i] < ADC_CHANNEL_10) {
+		if (adcConfig->channels[i] < ADC_CHANNEL_9) {
 			ADC1->SMPR2 |= (adcConfig->samplingPeriod << (3 * (adcConfig->channels[i])));
 		} else {
 			ADC1->SMPR1 |= ((adcConfig->samplingPeriod) << ((3 * (adcConfig->channels[i])) - 10));
@@ -412,25 +430,27 @@ void ADC_ConfigMultichannel (ADC_Config_t *adcConfig, uint8_t numeroDeCanales){
 	// Al hacerlo todo 0, estamos seleccionando solo 1 elemento en el conteo de la secuencia
 	ADC1->SQR1 = (numeroDeCanales - 1) << ADC_SQR1_L_Pos;
 
-	// Asignamos el canal de la conversión a la primera posición en la secuencia
+	// Asignamos el canal de la conversión a la primera posición en la secuencia Ojito revisar rfmanual
 	for (uint8_t i = 0; i < numeroDeCanales; i++) {
 
-		if(i < 7){
+		if(adcConfig->channels[i] < 7){
 			ADC1->SQR3 |= (adcConfig->channels[i] << i * 5);
-		} else if (i >= 7 && i < 13){
+		} else if (adcConfig->channels[i] >= 7 && adcConfig->channels[i] < 13){
 			ADC1->SQR2 |= (adcConfig->channels[i] << (i - 7) * 5);
-		} else if (i >= 13){
+		} else if (adcConfig->channels[i] >= 13){
 			ADC1->SQR1 |= (adcConfig->channels[i] << (i - 13) * 5);
 		} else{
 			__NOP();
 		}
 	}
 
+	ADC1->CR2|=ADC_CR2_EOCS;
+
 	/* 9. Configuramos el preescaler del ADC en 2:1 (el mas rápido que se puede tener */
 	ADC->CCR |= ADC_CCR_ADCPRE_0;
 
 
-	/* *********** INTERRUPCIONES *************/
+	/* ** INTERRUPCIONES **/
 	/* 10. Desactivamos las interrupciones globales */
 	__disable_irq();
 
