@@ -32,6 +32,7 @@ USART_Handler_t 		handlerUSART6			= {0};
 
 BasicTimer_Handler_t 	handlerTimer2 			= {0};
 BasicTimer_Handler_t 	handlerTimer4 			= {0};
+BasicTimer_Handler_t 	handlerTimer5 			= {0};
 
 GPIO_Handler_t 			handlerBlinkyLed 		= {0};
 GPIO_Handler_t			handlerTxPin			= {0};
@@ -60,12 +61,12 @@ uint8_t XY_indicator			= 0;
 uint8_t flagStatus 				= 0;
 uint8_t flagAdc 				= 0;
 uint8_t flagTimer 				= 0;
+uint8_t flagDate 				= 0;
 uint8_t counterReception 		= 0;
 bool stringComplete 			= false;
 char bufferReception[64] 		= {0};
 char cmd[64];
 char bufferData[64] 			= {0};
-char greetingMsg[] 				= "USART funcionando: muchas gracias aficion, esto es para vosotros hehehe siuuuu \n\r" ;
 char userMsg[64] 				= {0};
 char dataLCD[64] 				= {0};
 
@@ -132,18 +133,27 @@ int main(void)
 			statusLED();
 		}
 
+		if(flagDate){
+			flagDate = 0;
+			date = read_date();
+			hours = date[2];
+			mins = date[1];
+			segs = date[0];
+			day = date[4];
+			month = date[5];
+			year = date[6];
+			LCD_ClearScreen(&handlerLCD, 2);
+			sprintf(dataLCD, "%u:%u:%u %u/%u/%u", (unsigned int) hours, mins, segs, day, month, year );
+			LCD_setCursor(&handlerLCD,0,2);
+			LCD_sendSTR(&handlerLCD,dataLCD);
+		}
+
 		if (rxData != '\0'){
 			bufferReception[counterReception] = rxData;
 			counterReception++;
-			if (rxData == 'm'){
-				writeMsg(&handlerUSART6, greetingMsg);
-			}
-			if (rxData == 's'){
-				startSingleADC();
-			}
 			if (rxData == '@'){
 				stringComplete = true;
-				bufferReception[counterReception-1] = '\0';
+				bufferReception[counterReception] = '\0';
 				counterReception = 0;
 				writeMsg(&handlerUSART6, bufferReception);
 			}
@@ -152,16 +162,6 @@ int main(void)
 
 		if(flagTimer){
 			startSingleADC();
-			date = read_date();
-			hours = date[2];
-			mins = date[1];
-			segs = date[0];
-			day = date[4];
-			month = date[5];
-			year = date[6];
-			sprintf(dataLCD, "%u:%u:%u - %u/%u/%u", (unsigned int) hours, mins, segs, day, month, year);
-			LCD_setCursor(&handlerLCD,0,2);
-			LCD_sendSTR(&handlerLCD,dataLCD);
 			flagTimer = 0;
 		}
 
@@ -223,41 +223,41 @@ void InitSystem(void){
 	handlerBlinkyLed.GPIO_PinConfig.GPIO_PinPuPdControl 		= GPIO_PUPDR_NOTHING;
 	GPIO_Config(&handlerBlinkyLed);
 
-	handlerTxPin.pGPIOx = GPIOA;
-	handlerTxPin.GPIO_PinConfig.GPIO_PinNumber 					= PIN_11;
-	handlerTxPin.GPIO_PinConfig.GPIO_PinMode 					= GPIO_MODE_ALTFN;
-	handlerTxPin.GPIO_PinConfig.GPIO_PinOPType 					= GPIO_OTYPE_PUSHPULL;
-	handlerTxPin.GPIO_PinConfig.GPIO_PinSpeed 					= GPIO_OSPEED_FAST;
-	handlerTxPin.GPIO_PinConfig.GPIO_PinPuPdControl 			= GPIO_PUPDR_NOTHING;
-	handlerTxPin.GPIO_PinConfig.GPIO_PinAltFunMode				= AF8;
-	GPIO_Config(&handlerTxPin);
-
-	handlerRxPin.pGPIOx = GPIOA;
-	handlerRxPin.GPIO_PinConfig.GPIO_PinNumber 					= PIN_12;
-	handlerRxPin.GPIO_PinConfig.GPIO_PinMode 					= GPIO_MODE_ALTFN;
-	handlerRxPin.GPIO_PinConfig.GPIO_PinOPType 					= GPIO_OTYPE_PUSHPULL;
-	handlerRxPin.GPIO_PinConfig.GPIO_PinSpeed 					= GPIO_OSPEED_FAST;
-	handlerRxPin.GPIO_PinConfig.GPIO_PinPuPdControl 			= GPIO_PUPDR_NOTHING;
-	handlerRxPin.GPIO_PinConfig.GPIO_PinAltFunMode				= AF8;
-	GPIO_Config(&handlerRxPin);
-
 //	handlerTxPin.pGPIOx = GPIOA;
-//	handlerTxPin.GPIO_PinConfig.GPIO_PinNumber 					= PIN_2;
+//	handlerTxPin.GPIO_PinConfig.GPIO_PinNumber 					= PIN_11;
 //	handlerTxPin.GPIO_PinConfig.GPIO_PinMode 					= GPIO_MODE_ALTFN;
 //	handlerTxPin.GPIO_PinConfig.GPIO_PinOPType 					= GPIO_OTYPE_PUSHPULL;
 //	handlerTxPin.GPIO_PinConfig.GPIO_PinSpeed 					= GPIO_OSPEED_FAST;
 //	handlerTxPin.GPIO_PinConfig.GPIO_PinPuPdControl 			= GPIO_PUPDR_NOTHING;
-//	handlerTxPin.GPIO_PinConfig.GPIO_PinAltFunMode				= AF7;
+//	handlerTxPin.GPIO_PinConfig.GPIO_PinAltFunMode				= AF8;
 //	GPIO_Config(&handlerTxPin);
 //
 //	handlerRxPin.pGPIOx = GPIOA;
-//	handlerRxPin.GPIO_PinConfig.GPIO_PinNumber 					= PIN_3;
+//	handlerRxPin.GPIO_PinConfig.GPIO_PinNumber 					= PIN_12;
 //	handlerRxPin.GPIO_PinConfig.GPIO_PinMode 					= GPIO_MODE_ALTFN;
 //	handlerRxPin.GPIO_PinConfig.GPIO_PinOPType 					= GPIO_OTYPE_PUSHPULL;
 //	handlerRxPin.GPIO_PinConfig.GPIO_PinSpeed 					= GPIO_OSPEED_FAST;
 //	handlerRxPin.GPIO_PinConfig.GPIO_PinPuPdControl 			= GPIO_PUPDR_NOTHING;
-//	handlerRxPin.GPIO_PinConfig.GPIO_PinAltFunMode				= AF7;
+//	handlerRxPin.GPIO_PinConfig.GPIO_PinAltFunMode				= AF8;
 //	GPIO_Config(&handlerRxPin);
+
+	handlerTxPin.pGPIOx = GPIOA;
+	handlerTxPin.GPIO_PinConfig.GPIO_PinNumber 					= PIN_2;
+	handlerTxPin.GPIO_PinConfig.GPIO_PinMode 					= GPIO_MODE_ALTFN;
+	handlerTxPin.GPIO_PinConfig.GPIO_PinOPType 					= GPIO_OTYPE_PUSHPULL;
+	handlerTxPin.GPIO_PinConfig.GPIO_PinSpeed 					= GPIO_OSPEED_FAST;
+	handlerTxPin.GPIO_PinConfig.GPIO_PinPuPdControl 			= GPIO_PUPDR_NOTHING;
+	handlerTxPin.GPIO_PinConfig.GPIO_PinAltFunMode				= AF7;
+	GPIO_Config(&handlerTxPin);
+
+	handlerRxPin.pGPIOx = GPIOA;
+	handlerRxPin.GPIO_PinConfig.GPIO_PinNumber 					= PIN_3;
+	handlerRxPin.GPIO_PinConfig.GPIO_PinMode 					= GPIO_MODE_ALTFN;
+	handlerRxPin.GPIO_PinConfig.GPIO_PinOPType 					= GPIO_OTYPE_PUSHPULL;
+	handlerRxPin.GPIO_PinConfig.GPIO_PinSpeed 					= GPIO_OSPEED_FAST;
+	handlerRxPin.GPIO_PinConfig.GPIO_PinPuPdControl 			= GPIO_PUPDR_NOTHING;
+	handlerRxPin.GPIO_PinConfig.GPIO_PinAltFunMode				= AF7;
+	GPIO_Config(&handlerRxPin);
 
 	handlerPinPWM.pGPIOx = GPIOB;
 	handlerPinPWM.GPIO_PinConfig.GPIO_PinNumber 		   		= PIN_4;
@@ -300,18 +300,16 @@ void InitSystem(void){
 	handlerTimer4.TIMx_Config.TIMx_period						= 2500;
 	handlerTimer4.TIMx_Config.TIMx_interruptEnable 				= 1;
 	BasicTimer_Config(&handlerTimer4);
-	stopTimer(&handlerTimer4);
 
-//	handlerUSART6.ptrUSARTx 									= USART2;
-//	handlerUSART6.USART_Config.USART_mode 						= USART_MODE_RXTX;
-//	handlerUSART6.USART_Config.USART_baudrate 					= USART_BAUDRATE_57600;
-//	handlerUSART6.USART_Config.USART_datasize 					= USART_DATASIZE_9BIT;
-//	handlerUSART6.USART_Config.USART_parity 					= USART_PARITY_ODD;
-//	handlerUSART6.USART_Config.USART_stopbits             		= USART_STOPBIT_1;
-//	handlerUSART6.USART_Config.USART_enableIntRX          		= USART_RX_INTERRUP_ENABLE;
-//	USART_Config(&handlerUSART6);
+	handlerTimer5.ptrTIMx 										= TIM5;
+	handlerTimer5.TIMx_Config.TIMx_mode 						= BTIMER_MODE_UP;
+	handlerTimer5.TIMx_Config.TIMx_speed						= BTIMER_SPEED_100us;
+	handlerTimer5.TIMx_Config.TIMx_period						= 500;
+	handlerTimer5.TIMx_Config.TIMx_interruptEnable 				= 1;
+	BasicTimer_Config(&handlerTimer5);
+	startTimer(&handlerTimer5);
 
-	handlerUSART6.ptrUSARTx 									= USART6;
+	handlerUSART6.ptrUSARTx 									= USART2;
 	handlerUSART6.USART_Config.USART_mode 						= USART_MODE_RXTX;
 	handlerUSART6.USART_Config.USART_baudrate 					= USART_BAUDRATE_57600;
 	handlerUSART6.USART_Config.USART_datasize 					= USART_DATASIZE_9BIT;
@@ -319,6 +317,15 @@ void InitSystem(void){
 	handlerUSART6.USART_Config.USART_stopbits             		= USART_STOPBIT_1;
 	handlerUSART6.USART_Config.USART_enableIntRX          		= USART_RX_INTERRUP_ENABLE;
 	USART_Config(&handlerUSART6);
+
+//	handlerUSART6.ptrUSARTx 									= USART6;
+//	handlerUSART6.USART_Config.USART_mode 						= USART_MODE_RXTX;
+//	handlerUSART6.USART_Config.USART_baudrate 					= USART_BAUDRATE_57600;
+//	handlerUSART6.USART_Config.USART_datasize 					= USART_DATASIZE_9BIT;
+//	handlerUSART6.USART_Config.USART_parity 					= USART_PARITY_ODD;
+//	handlerUSART6.USART_Config.USART_stopbits             		= USART_STOPBIT_1;
+//	handlerUSART6.USART_Config.USART_enableIntRX          		= USART_RX_INTERRUP_ENABLE;
+//	USART_Config(&handlerUSART6);
 
 	adcAXIS_XY.channels[0] 		 								= ADC_CHANNEL_0;
 	adcAXIS_XY.channels[1] 		 								= ADC_CHANNEL_1;
@@ -359,6 +366,10 @@ void BasicTimer4_Callback(void){
 	flagTimer = 1;
 }
 
+void BasicTimer5_Callback(void){
+	flagDate = 1;
+}
+
 void usart2Rx_Callback(void){
 	rxData = getRxData();
 }
@@ -393,15 +404,15 @@ void parseCommands (char *ptrBufferReception){
 		writeMsg(&handlerUSART6, "10) printLCD			----	prints a surprise message on the LCD screen (4th row)\n");
 
 	}else if(strcmp(cmd, "dummy") == 0 || strcmp(cmd, "2") == 0){
-		writeMsg(&handlerUSART6, "CMD: dummy working\n\r");
+		writeMsg(&handlerUSART6, "\n\rCMD: dummy working\n\r");
 	}else if(strcmp(cmd, "startSingleADC") == 0 || strcmp(cmd, "3") == 0){
 		startSingleADC();
-		writeMsg(&handlerUSART6, "CMD: ADC working\n\r");
-		sprintf(bufferData, "x = %d, y = %d \n\r", (int) XY[0], (int) XY[1]);
+		writeMsg(&handlerUSART6, "\n\rCMD: ADC working\n\r");
+		sprintf(bufferData, "\n\rx = %d, y = %d \n\r", (int) XY[0], (int) XY[1]);
 		writeMsg(&handlerUSART6, bufferData);
 	}else if(strcmp(cmd, "duty") == 0 || strcmp(cmd, "4") == 0){
 		updateDuttyCycle(&handlerPwm, (int) firstParameter);
-		sprintf(bufferData, "PWM updated: %u\n\r", firstParameter);
+		sprintf(bufferData, "\n\rPWM updated: %u\n\r", firstParameter);
 		writeMsg(&handlerUSART6, bufferData);
 	}else if (strcmp(cmd, "readDate") == 0 || strcmp(cmd, "5") == 0){
 		date = read_date();
@@ -411,22 +422,22 @@ void parseCommands (char *ptrBufferReception){
 		day = date[4];
 		month = date[5];
 		year = date[6];
-		sprintf(bufferData, "The time is: \n\r %u:%u:%u - %u/%u/%u\n\r", (unsigned int) hours, mins, segs, day, month, year );
+		sprintf(bufferData, "\n\rThe time is: \n\r %u:%u:%u - %u/%u/%u\n\r", (unsigned int) hours, mins, segs, day, month, year );
 		writeMsg(&handlerUSART6, bufferData);
 	}else if(strcmp(cmd, "startTimer") == 0 || strcmp(cmd, "6") == 0){
 		startTimer(&handlerTimer4);
-		writeMsg(&handlerUSART6, "CMD: Timer on\n\r");
+		writeMsg(&handlerUSART6, "\n\rCMD: Timer on\n\r");
 	}else if(strcmp(cmd, "stopTimer") == 0 || strcmp(cmd, "7") == 0){
 		stopTimer(&handlerTimer4);
-		writeMsg(&handlerUSART6, "CMD: Timer off\n\r");
+		writeMsg(&handlerUSART6, "\n\rCMD: Timer off\n\r");
 	}else if(strcmp(cmd, "printlastADC") == 0 || strcmp(cmd, "8") == 0){
-		sprintf(bufferData, "x = %d, y = %d \n\r", (int) XY[0], (int) XY[1]);
+		sprintf(bufferData, "\n\rx = %d, y = %d \n\r", (int) XY[0], (int) XY[1]);
 		writeMsg(&handlerUSART6, bufferData);
 	}else if(strcmp(cmd, "name") == 0 || strcmp(cmd, "9") == 0){
-		writeMsg(&handlerUSART6, "Juan Felipe Guerrero Cataño\n\r");
+		writeMsg(&handlerUSART6, "\n\rJuan Felipe Guerrero Catano\n\r");
 	}else if(strcmp(cmd, "printLCD") == 0 || strcmp(cmd, "10") == 0){
-		sprintf(dataLCD, "Nerio, pongame 5 :)\n\r");
-		LCD_setCursor(&handlerLCD,4,0);
+		sprintf(dataLCD, "Nerio, pongame 5");
+		LCD_setCursor(&handlerLCD,0,3);
 		LCD_sendSTR(&handlerLCD,dataLCD);
 	}
 }

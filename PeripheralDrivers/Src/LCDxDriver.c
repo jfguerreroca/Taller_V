@@ -229,6 +229,6 @@ void delay_10 (void){
 
 void LCD_ClearScreen(I2C_Handler_t *ptrHandlerI2C, uint8_t cursor1){
 	char DataClean[64] = "                    ";
-	LCD_setCursor(ptrHandlerI2C, cursor1, 0);
+	LCD_setCursor(ptrHandlerI2C, 0, cursor1);
 	LCD_sendSTR(ptrHandlerI2C, DataClean);
 }
