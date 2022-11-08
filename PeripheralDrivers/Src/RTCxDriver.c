@@ -10,7 +10,7 @@
 void RTC_Config(RTC_Handler_t *ptrRtcHandler) {
 
 	/*DBP Bit of the PWR_CR must be set to enable RTC registers write access
-	 * *******************************************************
+	 * *******
 	 * Writing to the RTC registers is enabled by writing a key
 	 * to the RTC_WPR register: 0xCA , 0x53
 	 */
@@ -31,8 +31,13 @@ void RTC_Config(RTC_Handler_t *ptrRtcHandler) {
 		__NOP() ;
 	}
 
-	RTC->WPR = (0xCA /*<< RTC_WPR_KEY_Pos*/); // Key unlock write protection
-	RTC->WPR = (0x53 /*<< RTC_WPR_KEY_Pos*/); // Key unlock write protection
+	RTC->WPR = (0xCA << RTC_WPR_KEY_Pos); // Key unlock write protection
+	RTC->WPR = (0x53 << RTC_WPR_KEY_Pos); // Key unlock write protection
+
+	/* Wait for RTC APB registers synch
+	while(!(RTC->ISR & RTC_ISR_RSF)){
+		__NOP() ;
+	} */
 
 	RTC->ISR |= RTC_ISR_INIT;			  // Enter initialization mode
 	while (!(RTC->ISR & RTC_ISR_INITF)){  //Poll INITF
@@ -91,7 +96,6 @@ void RTC_Config(RTC_Handler_t *ptrRtcHandler) {
 
 //Definición de las variables necesarias para  el RTC
 
-uint8_t calendario [7] = {0};
 
 uint8_t RTC_BcdToByte(uint16_t BCD_Value){
 
@@ -99,16 +103,21 @@ uint8_t RTC_BcdToByte(uint16_t BCD_Value){
     return Decimal_Value;
 }
 
+uint16_t calendario[7] = {0};
+
 void *read_date(void){
+
+    //while((RTC->ISR & RTC_ISR_RSF)){
 
 	 uint8_t RTC_Hours     = 0;
 	 uint8_t RTC_Minutes = 0;
 	 uint8_t RTC_Seconds = 0;
 
+	// uint8_t weekday = 0;
+
 	 uint8_t RTC_year = 0;
 	 uint8_t RTC_Month = 0;
 	 uint8_t RTC_Day = 0;
-	 uint8_t RTC_Weekday = 0;
 
 	 uint32_t RTC_Time = 0;
 	 RTC_Time = RTC->TR;
@@ -116,25 +125,23 @@ void *read_date(void){
 	 uint32_t RTC_Date = 0;
 	 RTC_Date = RTC->DR;
 
-	 RTC_Hours	 = RTC_BcdToByte(((RTC_Time & 0x3F0000) >> 16));
+	 RTC_Hours   = RTC_BcdToByte(((RTC_Time & 0x3F0000) >> 16));
 	 RTC_Minutes = RTC_BcdToByte(((RTC_Time & 0x007F00) >> 8));
 	 RTC_Seconds = RTC_BcdToByte((RTC_Time  & 0x7F));
 
-	 RTC_Weekday = RTC_BcdToByte(((RTC_Date & 0xE000)   >> 13));
-	 RTC_year    = RTC_BcdToByte(((RTC_Date & 0xFF0000) >> 16));
-	 RTC_Month   = RTC_BcdToByte(((RTC_Date & 0x1F00)   >> 8));
-	 RTC_Day     = RTC_BcdToByte((RTC_Date  & 0x3F));
+	//  weekday  = RTC_BcdToByte(((RTC_Date & 0xE000)   >> 13));
+	  RTC_year   = RTC_BcdToByte(((RTC_Date & 0xFF0000) >> 16));
+	  RTC_Month  = RTC_BcdToByte(((RTC_Date & 0x1F00)   >> 8));
+	  RTC_Day    = RTC_BcdToByte((RTC_Date  & 0x3F));
+
 
 	calendario[0] = RTC_Seconds;
 	calendario[1] = RTC_Minutes;
 	calendario[2] = RTC_Hours;
-	calendario[3] = RTC_Weekday;
+	//calendario[3] = WeekDayIs();
 	calendario[4] = RTC_Day;
 	calendario[5] = RTC_Month;
 	calendario[6] = RTC_year;
 //    }
-
 	return calendario;
 }
-
-

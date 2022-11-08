@@ -3,6 +3,7 @@
 "./Src/ExtiDriver.o"
 "./Src/GPIOxDriver.o"
 "./Src/I2CDriver.o"
+"./Src/LCDxDriver.o"
 "./Src/PwmDriver.o"
 "./Src/RTCxDriver.o"
 "./Src/USARTxDriver.o"
