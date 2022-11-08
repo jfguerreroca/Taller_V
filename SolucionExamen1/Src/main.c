@@ -45,9 +45,9 @@ ADC_Config_t  			adcAXIS_XY     			= {0};
 
 PWM_Handler_t 			handlerPwm				= {0};
 
-RTC_Handler_t handlerRTC = {0};
+RTC_Handler_t handlerRTC 						= {0};
 
-I2C_Handler_t handlerLCD = {0};
+I2C_Handler_t handlerLCD 						= {0};
 
 // Definimos las variables que utilizaremos
 
@@ -63,7 +63,9 @@ uint8_t flagAdc 				= 0;
 uint8_t flagTimer 				= 0;
 uint8_t flagDate 				= 0;
 uint8_t counterReception 		= 0;
+
 bool stringComplete 			= false;
+
 char bufferReception[64] 		= {0};
 char cmd[64];
 char bufferData[64] 			= {0};
@@ -73,13 +75,13 @@ char dataLCD[64] 				= {0};
 unsigned int firstParameter 	= 0;
 unsigned int secondParameter 	= 0;
 
-uint8_t hours = 0;
-uint8_t mins = 0;
-uint8_t segs = 0;
-uint8_t day = 0;
-uint8_t month = 0;
-uint8_t year = 0;
-uint16_t *date = 0;
+uint8_t hours 					= 0;
+uint8_t mins 					= 0;
+uint8_t segs 					= 0;
+uint8_t day 					= 0;
+uint8_t month 					= 0;
+uint8_t year 					= 0;
+uint16_t *date 					= 0;
 
 // Definimos las funciones que vamos a utilizar:
 
@@ -103,16 +105,25 @@ int main(void)
 	 * Cargamos las configuraciones de cada periferico a utilizar:
 	 *
 	 * 		- 2 GPIO para la transmision Serial RXTX por el USART6
+	 * 		- 2 GPIO para la transmision I2C (SDA y SCL)
 	 * 		- 1 GPIO para el control del Blinky
-	 * 		- 1 timer, el TIM2 encargado del Blinky
+	 * 		- 1 GPIO para la salida PWM (con el timer 3)
+	 * 		- 4 timer, el TIM2 encargado del Blinky, el TIM3 encargado del PWM (este no se configura
+	 * 		  como timer, ya que el pwm lo hace), el TIM4 encargado del lanzamiento del
+	 * 		  ADC y el TIM5 encargado de la tasa de refresco de la fecha en la LCD.
 	 * 		- 1 Usart encargado de la comunicacion serial (USART6)
 	 * 		- 1 ADC, de manera multi canal, para la lectura de los ejes X y Y del joystick
+	 * 		- 1 PWM, para entregar los ciclos de trabajo al servomotor
+	 * 		- 1 RTC, para desplegar la fecha y hora
+	 * 		- 1 I2C, para controlar la pantalla LCD
 	 *
 	 */
 
 	InitSystem();
 
 	writeChar(&handlerUSART6, ' ');
+
+	//Inicializamos la LCD, poniendo en las dos primeras filas mensajes
 
 	LCD_Clear(&handlerLCD);
 	delay_10();
@@ -128,11 +139,17 @@ int main(void)
 	/* Ciclo infinito del main */
 	while(1){
 
+
+		// Condicional para la interrupcion del blinky
 		if(flagStatus){
 			flagStatus = 0;
 			statusLED();
 		}
 
+		/*
+		 * Condicional para la interrupcion de la tasa de refresco de la fecha en la LCD, donde
+		 * imprimimos en la tercera fila de la LCD, la fecha actual del RTC.		 *
+		 */
 		if(flagDate){
 			flagDate = 0;
 			date = read_date();
@@ -148,6 +165,7 @@ int main(void)
 			LCD_sendSTR(&handlerLCD,dataLCD);
 		}
 
+		// Con esto configuramos la recepcion de comandos
 		if (rxData != '\0'){
 			bufferReception[counterReception] = rxData;
 			counterReception++;
@@ -160,17 +178,27 @@ int main(void)
 			rxData = '\0';
 		}
 
+
+		/* Condicional para la interrupcion del timer 4, para lanzar la conversion ADC, y asi comenzar el control del servo
+		   con el joystick */
 		if(flagTimer){
 			startSingleADC();
 			flagTimer = 0;
 		}
 
-		// Se realiza un analisis de la cadena de datos obtenida.
+		// Se realiza un analisis de la cadena de datos obtenida
 		if (stringComplete){
 			parseCommands(bufferReception);
 			stringComplete = false;
 		}
 
+		/*
+		 * Con esta bandera, configuramos la adquisicion de datos para el joystick.
+		 * Sabemos que dentro de la secuencia hay dos conversiones, cada una con su
+		 * respectiva interrupcion, por lo que usamos un contador para adquirir primero
+		 * el dato en X, y luego el dato en Y, almacenando estos en un arreglo y levantando
+		 * la bandera adcIsComplete
+		 */
 		if(flagAdc){
 			if(XY_indicator){
 				adcData = getADC();
@@ -185,6 +213,16 @@ int main(void)
 			flagAdc = 0;
 		}
 
+
+		/*
+		 * Cuando esta bandera es levantada, significa que los dos valores (X y Y) fueron
+		 * adquiridos satisfactoriamente.
+		 * Lo que hacemos con estos es imprimirlos por comunicacion serial, y definimos
+		 * unos rangos de movimiento del joystick, para los cuales se les asignaron
+		 * valores de duty arbitrarios, de manera que se pueda controlar el servo con
+		 * el movimiento del joystick.
+		 * El movimiento es continuo, siempre y cuando el timer 4 esté activo.
+		 */
 		if (adcIsComplete == true) {
 					sprintf(bufferData, "x = %d y = %d \n\r", (int) XY[0], (int) XY[1]);
 					writeMsg(&handlerUSART6, bufferData);
@@ -223,40 +261,22 @@ void InitSystem(void){
 	handlerBlinkyLed.GPIO_PinConfig.GPIO_PinPuPdControl 		= GPIO_PUPDR_NOTHING;
 	GPIO_Config(&handlerBlinkyLed);
 
-//	handlerTxPin.pGPIOx = GPIOA;
-//	handlerTxPin.GPIO_PinConfig.GPIO_PinNumber 					= PIN_11;
-//	handlerTxPin.GPIO_PinConfig.GPIO_PinMode 					= GPIO_MODE_ALTFN;
-//	handlerTxPin.GPIO_PinConfig.GPIO_PinOPType 					= GPIO_OTYPE_PUSHPULL;
-//	handlerTxPin.GPIO_PinConfig.GPIO_PinSpeed 					= GPIO_OSPEED_FAST;
-//	handlerTxPin.GPIO_PinConfig.GPIO_PinPuPdControl 			= GPIO_PUPDR_NOTHING;
-//	handlerTxPin.GPIO_PinConfig.GPIO_PinAltFunMode				= AF8;
-//	GPIO_Config(&handlerTxPin);
-//
-//	handlerRxPin.pGPIOx = GPIOA;
-//	handlerRxPin.GPIO_PinConfig.GPIO_PinNumber 					= PIN_12;
-//	handlerRxPin.GPIO_PinConfig.GPIO_PinMode 					= GPIO_MODE_ALTFN;
-//	handlerRxPin.GPIO_PinConfig.GPIO_PinOPType 					= GPIO_OTYPE_PUSHPULL;
-//	handlerRxPin.GPIO_PinConfig.GPIO_PinSpeed 					= GPIO_OSPEED_FAST;
-//	handlerRxPin.GPIO_PinConfig.GPIO_PinPuPdControl 			= GPIO_PUPDR_NOTHING;
-//	handlerRxPin.GPIO_PinConfig.GPIO_PinAltFunMode				= AF8;
-//	GPIO_Config(&handlerRxPin);
-
 	handlerTxPin.pGPIOx = GPIOA;
-	handlerTxPin.GPIO_PinConfig.GPIO_PinNumber 					= PIN_2;
+	handlerTxPin.GPIO_PinConfig.GPIO_PinNumber 					= PIN_11;
 	handlerTxPin.GPIO_PinConfig.GPIO_PinMode 					= GPIO_MODE_ALTFN;
 	handlerTxPin.GPIO_PinConfig.GPIO_PinOPType 					= GPIO_OTYPE_PUSHPULL;
 	handlerTxPin.GPIO_PinConfig.GPIO_PinSpeed 					= GPIO_OSPEED_FAST;
 	handlerTxPin.GPIO_PinConfig.GPIO_PinPuPdControl 			= GPIO_PUPDR_NOTHING;
-	handlerTxPin.GPIO_PinConfig.GPIO_PinAltFunMode				= AF7;
+	handlerTxPin.GPIO_PinConfig.GPIO_PinAltFunMode				= AF8;
 	GPIO_Config(&handlerTxPin);
 
 	handlerRxPin.pGPIOx = GPIOA;
-	handlerRxPin.GPIO_PinConfig.GPIO_PinNumber 					= PIN_3;
+	handlerRxPin.GPIO_PinConfig.GPIO_PinNumber 					= PIN_12;
 	handlerRxPin.GPIO_PinConfig.GPIO_PinMode 					= GPIO_MODE_ALTFN;
 	handlerRxPin.GPIO_PinConfig.GPIO_PinOPType 					= GPIO_OTYPE_PUSHPULL;
 	handlerRxPin.GPIO_PinConfig.GPIO_PinSpeed 					= GPIO_OSPEED_FAST;
 	handlerRxPin.GPIO_PinConfig.GPIO_PinPuPdControl 			= GPIO_PUPDR_NOTHING;
-	handlerRxPin.GPIO_PinConfig.GPIO_PinAltFunMode				= AF7;
+	handlerRxPin.GPIO_PinConfig.GPIO_PinAltFunMode				= AF8;
 	GPIO_Config(&handlerRxPin);
 
 	handlerPinPWM.pGPIOx = GPIOB;
@@ -309,7 +329,7 @@ void InitSystem(void){
 	BasicTimer_Config(&handlerTimer5);
 	startTimer(&handlerTimer5);
 
-	handlerUSART6.ptrUSARTx 									= USART2;
+	handlerUSART6.ptrUSARTx 									= USART6;
 	handlerUSART6.USART_Config.USART_mode 						= USART_MODE_RXTX;
 	handlerUSART6.USART_Config.USART_baudrate 					= USART_BAUDRATE_57600;
 	handlerUSART6.USART_Config.USART_datasize 					= USART_DATASIZE_9BIT;
@@ -318,15 +338,6 @@ void InitSystem(void){
 	handlerUSART6.USART_Config.USART_enableIntRX          		= USART_RX_INTERRUP_ENABLE;
 	USART_Config(&handlerUSART6);
 
-//	handlerUSART6.ptrUSARTx 									= USART6;
-//	handlerUSART6.USART_Config.USART_mode 						= USART_MODE_RXTX;
-//	handlerUSART6.USART_Config.USART_baudrate 					= USART_BAUDRATE_57600;
-//	handlerUSART6.USART_Config.USART_datasize 					= USART_DATASIZE_9BIT;
-//	handlerUSART6.USART_Config.USART_parity 					= USART_PARITY_ODD;
-//	handlerUSART6.USART_Config.USART_stopbits             		= USART_STOPBIT_1;
-//	handlerUSART6.USART_Config.USART_enableIntRX          		= USART_RX_INTERRUP_ENABLE;
-//	USART_Config(&handlerUSART6);
-
 	adcAXIS_XY.channels[0] 		 								= ADC_CHANNEL_0;
 	adcAXIS_XY.channels[1] 		 								= ADC_CHANNEL_1;
 	adcAXIS_XY.dataAlignment     								= ADC_ALIGNMENT_RIGHT;
@@ -334,27 +345,27 @@ void InitSystem(void){
 	adcAXIS_XY.samplingPeriod    								= ADC_SAMPLING_PERIOD_28_CYCLES;
 	ADC_ConfigMultichannel(&adcAXIS_XY, 2);
 
-	handlerPwm.config.channel		= PWM_CHANNEL_1;
-	handlerPwm.config.prescaler 	= 1600;
-	handlerPwm.config.periodo 		= 200;
-	handlerPwm.config.duttyCicle 	= 5;
-	handlerPwm.ptrTIMx = TIM3;
+	handlerPwm.config.channel									= PWM_CHANNEL_1;
+	handlerPwm.config.prescaler 								= 1600;
+	handlerPwm.config.periodo 									= 200;
+	handlerPwm.config.duttyCicle 								= 5;
+	handlerPwm.ptrTIMx 											= TIM3;
 	pwm_Config(&handlerPwm);
 	startPwmSignal(&handlerPwm);
 
-	handlerRTC.RTC_Config.RTC_Hours = 23;
-	handlerRTC.RTC_Config.RTC_Minutes = 59;
-	handlerRTC.RTC_Config.RTC_Seconds = 30;
-	handlerRTC.RTC_Config.RTC_Year = 22;
-	handlerRTC.RTC_Config.RTC_Month = 11;
-	handlerRTC.RTC_Config.RTC_TimeFormat = TIME_FORMAT_24_HOUR;
-	handlerRTC.RTC_Config.RTC_TimeNotation = TIME_NOTATION_AM_OR_24;
-	handlerRTC.RTC_Config.RTC_ValueDay = 5;
+	handlerRTC.RTC_Config.RTC_Hours 							= 23;
+	handlerRTC.RTC_Config.RTC_Minutes							= 59;
+	handlerRTC.RTC_Config.RTC_Seconds 							= 30;
+	handlerRTC.RTC_Config.RTC_Year 								= 22;
+	handlerRTC.RTC_Config.RTC_Month 							= 11;
+	handlerRTC.RTC_Config.RTC_TimeFormat 						= TIME_FORMAT_24_HOUR;
+	handlerRTC.RTC_Config.RTC_TimeNotation 						= TIME_NOTATION_AM_OR_24;
+	handlerRTC.RTC_Config.RTC_ValueDay 							= 5;
 	RTC_Config(&handlerRTC);
 
-	handlerLCD.ptrI2Cx				= I2C1;
-	handlerLCD.modeI2C				= I2C_MODE_SM;
-	handlerLCD.slaveAddress			= LCD_ADDRESS;
+	handlerLCD.ptrI2Cx											= I2C1;
+	handlerLCD.modeI2C											= I2C_MODE_SM;
+	handlerLCD.slaveAddress										= LCD_ADDRESS;
 	i2c_config(&handlerLCD);
 }
 
@@ -370,13 +381,9 @@ void BasicTimer5_Callback(void){
 	flagDate = 1;
 }
 
-void usart2Rx_Callback(void){
+void usart6Rx_Callback(void){
 	rxData = getRxData();
 }
-
-//void usart6Rx_Callback(void){
-//	rxData = getRxData();
-//}
 
 void adcComplete_Callback(void){
 	flagAdc = 1;
@@ -408,7 +415,7 @@ void parseCommands (char *ptrBufferReception){
 	}else if(strcmp(cmd, "startSingleADC") == 0 || strcmp(cmd, "3") == 0){
 		startSingleADC();
 		writeMsg(&handlerUSART6, "\n\rCMD: ADC working\n\r");
-		sprintf(bufferData, "\n\rx = %d, y = %d \n\r", (int) XY[0], (int) XY[1]);
+		sprintf(bufferData, "\n\r x = %d, y = %d \n\r", (int) XY[0], (int) XY[1]);
 		writeMsg(&handlerUSART6, bufferData);
 	}else if(strcmp(cmd, "duty") == 0 || strcmp(cmd, "4") == 0){
 		updateDuttyCycle(&handlerPwm, (int) firstParameter);
