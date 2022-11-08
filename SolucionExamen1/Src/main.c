@@ -63,7 +63,7 @@ uint8_t flagTimer 				= 0;
 uint8_t counterReception 		= 0;
 bool stringComplete 			= false;
 char bufferReception[64] 		= {0};
-char cmd[64]; // Para el analisis de comandos
+char cmd[64];
 char bufferData[64] 			= {0};
 char greetingMsg[] 				= "USART funcionando: muchas gracias aficion, esto es para vosotros hehehe siuuuu \n\r" ;
 char userMsg[64] 				= {0};
@@ -117,14 +117,11 @@ int main(void)
 	delay_10();
 	LCD_Init(&handlerLCD);
 	delay_10();
-	sprintf(dataLCD, "Hola, soy JFGC");
+	sprintf(dataLCD, "Examen Taller V");
 	LCD_setCursor(&handlerLCD,0,0);
 	LCD_sendSTR(&handlerLCD,dataLCD);
-	sprintf(dataLCD, "Parcial Taller V");
-	LCD_setCursor(&handlerLCD,1,0);
-	LCD_sendSTR(&handlerLCD,dataLCD);
-	sprintf(dataLCD, "Me voy a matar");
-	LCD_setCursor(&handlerLCD,2,0);
+	sprintf(dataLCD, "Hecho por: JFGC");
+	LCD_setCursor(&handlerLCD,0,1);
 	LCD_sendSTR(&handlerLCD,dataLCD);
 
 	/* Ciclo infinito del main */
@@ -155,6 +152,16 @@ int main(void)
 
 		if(flagTimer){
 			startSingleADC();
+			date = read_date();
+			hours = date[2];
+			mins = date[1];
+			segs = date[0];
+			day = date[4];
+			month = date[5];
+			year = date[6];
+			sprintf(dataLCD, "%u:%u:%u - %u/%u/%u", (unsigned int) hours, mins, segs, day, month, year);
+			LCD_setCursor(&handlerLCD,0,2);
+			LCD_sendSTR(&handlerLCD,dataLCD);
 			flagTimer = 0;
 		}
 
@@ -181,7 +188,7 @@ int main(void)
 		if (adcIsComplete == true) {
 					sprintf(bufferData, "x = %d y = %d \n\r", (int) XY[0], (int) XY[1]);
 					writeMsg(&handlerUSART6, bufferData);
-					if (XY[0] > 1300 && XY[0] <= 2300) {
+					if(XY[0] > 0 && XY[0] <= 2300) {
 						if (XY[1] > 1300 && XY[1] <= 2300) {
 							updateDuttyCycle(&handlerPwm, 8);
 						} else if (XY[1] > 0 && XY[1] <= 1300) {
@@ -189,19 +196,13 @@ int main(void)
 						} else if (XY[1] > 2300 && XY[1] < 4100) {
 							updateDuttyCycle(&handlerPwm, 20);
 						}
-					} else if (XY[0] > 2300 && XY[0] <= 4100) {
+					}else if (XY[0] > 2300 && XY[0] <= 4100) {
 						if (XY[1] > 1300 && XY[1] <= 2300) {
 							updateDuttyCycle(&handlerPwm, 10);
 						} else if (XY[1] > 0 && XY[1] <= 1300) {
 							updateDuttyCycle(&handlerPwm, 12);
 						}
-					} else if (XY[0] >= 0 && XY[0] <= 1300) {
-						if (XY[1] > 0 && XY[1] <= 1300) {
-							updateDuttyCycle(&handlerPwm, 16);
-						} else if (XY[1] > 1300 && XY[1] <= 2300) {
-							updateDuttyCycle(&handlerPwm, 18);
-						}
-					} else {
+					}else {
 						__NOP();
 					}
 
@@ -381,29 +382,28 @@ void parseCommands (char *ptrBufferReception){
 		writeMsg(&handlerUSART6, "\n");
 		writeMsg(&handlerUSART6, "Help menus CMDs:\n");
 		writeMsg(&handlerUSART6, "1) help				----	print this menu\n");
-		writeMsg(&handlerUSART6, "2) updateRGB #H #S	----	initialize the accelerometer\n");
-		writeMsg(&handlerUSART6, "3) up					----	read data on the x-axis of the accelerometer\n");
-		writeMsg(&handlerUSART6, "4) currentDate		----	read data on the y-axis of the accelerometer\n");
-		writeMsg(&handlerUSART6, "5) readJoystick		----	read data on both axes of the accelerometer\n");
-		writeMsg(&handlerUSART6, "6) readAccXYc			----	read data on both axes of the accelerometer continuously\n");
-		writeMsg(&handlerUSART6, "7) stopReadAccXYc		----	stop read data on both axes of the accelerometer continuously\n");
-		writeMsg(&handlerUSART6, "8) setDate			----	set the date that will be shown on the console\n");
-		writeMsg(&handlerUSART6, "9) showDate			----	show date only once\n");
-		writeMsg(&handlerUSART6, "10) showDateC			----	show date continuously\n");
-		writeMsg(&handlerUSART6, "11) stopShowDateC		----	stop show date continuously\n");
-		writeMsg(&handlerUSART6, "12) setPeriod #		----	change the state led period\n");
-	}else if(strcmp(cmd, "dummy") == 0){
-		writeMsg(&handlerUSART6, "CMD: dummy\n\r");
-	}else if(strcmp(cmd, "startSingleADC") == 0){
+		writeMsg(&handlerUSART6, "2) dummy				----	prints a test message\n");
+		writeMsg(&handlerUSART6, "3) startSingleADC		----	start a single ADC (timer 4 off)\n");
+		writeMsg(&handlerUSART6, "4) duty #d			----	updates PWM duty cycle\n");
+		writeMsg(&handlerUSART6, "5) readDate			----	prints actual date and time\n");
+		writeMsg(&handlerUSART6, "6) startTimer			----	start timer 4 (ADC conversion every 250ms)\n");
+		writeMsg(&handlerUSART6, "7) stopTimer			----	stop timer 4 (ADC conversion every 250ms)\n");
+		writeMsg(&handlerUSART6, "8) printlastADC		----	prints the last ADC value\n");
+		writeMsg(&handlerUSART6, "9) name				----	shows the name of the GOAT who made this\n");
+		writeMsg(&handlerUSART6, "10) printLCD			----	prints a surprise message on the LCD screen (4th row)\n");
+
+	}else if(strcmp(cmd, "dummy") == 0 || strcmp(cmd, "2") == 0){
+		writeMsg(&handlerUSART6, "CMD: dummy working\n\r");
+	}else if(strcmp(cmd, "startSingleADC") == 0 || strcmp(cmd, "3") == 0){
 		startSingleADC();
 		writeMsg(&handlerUSART6, "CMD: ADC working\n\r");
 		sprintf(bufferData, "x = %d, y = %d \n\r", (int) XY[0], (int) XY[1]);
 		writeMsg(&handlerUSART6, bufferData);
-	}else if(strcmp(cmd, "duty") == 0){
+	}else if(strcmp(cmd, "duty") == 0 || strcmp(cmd, "4") == 0){
 		updateDuttyCycle(&handlerPwm, (int) firstParameter);
 		sprintf(bufferData, "PWM updated: %u\n\r", firstParameter);
 		writeMsg(&handlerUSART6, bufferData);
-	}else if (strcmp(cmd, "readDate") == 0){
+	}else if (strcmp(cmd, "readDate") == 0 || strcmp(cmd, "5") == 0){
 		date = read_date();
 		hours = date[2];
 		mins = date[1];
@@ -411,25 +411,24 @@ void parseCommands (char *ptrBufferReception){
 		day = date[4];
 		month = date[5];
 		year = date[6];
-		sprintf(bufferData, "La fecha actual es: \n\rlas %u:%u:%u del %u/%u/%u\n\r", (unsigned int) hours, mins, segs, day, month, year );
+		sprintf(bufferData, "The time is: \n\r %u:%u:%u - %u/%u/%u\n\r", (unsigned int) hours, mins, segs, day, month, year );
 		writeMsg(&handlerUSART6, bufferData);
-	}else if(strcmp(cmd, "startTimer") == 0){
+	}else if(strcmp(cmd, "startTimer") == 0 || strcmp(cmd, "6") == 0){
 		startTimer(&handlerTimer4);
 		writeMsg(&handlerUSART6, "CMD: Timer on\n\r");
-	}else if(strcmp(cmd, "stopTimer") == 0){
+	}else if(strcmp(cmd, "stopTimer") == 0 || strcmp(cmd, "7") == 0){
 		stopTimer(&handlerTimer4);
 		writeMsg(&handlerUSART6, "CMD: Timer off\n\r");
-	}else if(strcmp(cmd, "printlastADC") == 0){
+	}else if(strcmp(cmd, "printlastADC") == 0 || strcmp(cmd, "8") == 0){
 		sprintf(bufferData, "x = %d, y = %d \n\r", (int) XY[0], (int) XY[1]);
 		writeMsg(&handlerUSART6, bufferData);
-	}else if(strcmp(cmd, "name") == 0){
+	}else if(strcmp(cmd, "name") == 0 || strcmp(cmd, "9") == 0){
 		writeMsg(&handlerUSART6, "Juan Felipe Guerrero Cataño\n\r");
-	}else if(strcmp(cmd, "printLCD") == 0){
-		sprintf(dataLCD, "%s\n\r", firstParameter);
+	}else if(strcmp(cmd, "printLCD") == 0 || strcmp(cmd, "10") == 0){
+		sprintf(dataLCD, "Nerio, pongame 5 :)\n\r");
 		LCD_setCursor(&handlerLCD,4,0);
 		LCD_sendSTR(&handlerLCD,dataLCD);
 	}
-
 }
 
 void statusLED(void){

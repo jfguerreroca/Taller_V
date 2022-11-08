@@ -104,9 +104,9 @@ void LCD_sendSTR(I2C_Handler_t *ptrHandlerI2C, char *str) {
 }
 void LCD_setCursor(I2C_Handler_t *ptrHandlerI2C, uint8_t x, uint8_t y) {
 	uint8_t cursor;
-	switch (x) {
+	switch (y) {
 	case 0 :
-		switch (y) {
+		switch (x) {
 		case 0 : cursor = 0x00; break;
 		case 1 : cursor = 0x01; break;
 		case 2 : cursor = 0x02; break;
@@ -130,7 +130,7 @@ void LCD_setCursor(I2C_Handler_t *ptrHandlerI2C, uint8_t x, uint8_t y) {
 		} break;
 
 	case 1 :
-		switch (y) {
+		switch (x) {
 		case 0 : cursor = 0x40; break;
 		case 1 : cursor = 0x41; break;
 		case 2 : cursor = 0x42; break;
@@ -154,7 +154,7 @@ void LCD_setCursor(I2C_Handler_t *ptrHandlerI2C, uint8_t x, uint8_t y) {
 		} break;
 
 	case 2 :
-		switch (y) {
+		switch (x) {
 		case 0 : cursor = 0x14; break;
 		case 1 : cursor = 0x15; break;
 		case 2 : cursor = 0x16; break;
@@ -178,7 +178,7 @@ void LCD_setCursor(I2C_Handler_t *ptrHandlerI2C, uint8_t x, uint8_t y) {
 		} break;
 
 	case 3 :
-		switch (y) {
+		switch (x) {
 		case 0 : cursor = 0x54; break;
 		case 1 : cursor = 0x55; break;
 		case 2 : cursor = 0x56; break;
@@ -227,10 +227,8 @@ void delay_10 (void){
 	}
 }
 
-void LCD_ClearScreen(I2C_Handler_t *ptrHandlerI2C){
+void LCD_ClearScreen(I2C_Handler_t *ptrHandlerI2C, uint8_t cursor1){
 	char DataClean[64] = "                    ";
-	for(int i=0;i<4;i++){
-		LCD_setCursor(ptrHandlerI2C, i, 0);
-		LCD_sendSTR(ptrHandlerI2C,DataClean);
-	}
+	LCD_setCursor(ptrHandlerI2C, cursor1, 0);
+	LCD_sendSTR(ptrHandlerI2C, DataClean);
 }
