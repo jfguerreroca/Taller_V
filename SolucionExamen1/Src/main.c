@@ -452,3 +452,15 @@ void parseCommands (char *ptrBufferReception){
 void statusLED(void){
 	GPIOxTogglePin(&handlerBlinkyLed);
 }
+
+//Revisión Examen
+//- El Display LCD funciona.
+//- La comunicación serial funcina, pero presenta un comportamiento extraño. NO identifica los comandos mal escritos y no implementa el paso de parametros, de forma que se pierde la versatilidad que ofrecen los comandos.
+//- Presente el RTC pero no es posible modificar los valores para verificar el adecuado comporamiento.
+//- El joystick funciona, pero la presentación de los datos es un poco extraña, confusa.
+//- El servo funciona, pero la forma de seleccionar la posición no es intuitiva, además que no es posible fijar una posición del motor manipulandolo desde el joystick.
+//- Presenta el driver para el RTC pero no sabe explicar como funciona el esclavo que maneja a la LCD.
+//
+//(12+18+12+9+5+15)*5/100
+//
+//Calificación = 3.55
