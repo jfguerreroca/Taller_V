@@ -1,0 +1,66 @@
+/*
+ * RCC100xDriver.c
+ *
+ *  Created on: 12 nov 2022
+ *      Author: Felipe
+ */
+
+#include "RCC100xDriver.h"
+
+void set100MHzRCC (void){
+
+	__disable_irq();
+
+	RCC->CR |= RCC_CR_PLLON;
+
+	RCC->PLLCFGR &= ~RCC_PLLCFGR_PLLM;
+	RCC->PLLCFGR |=  RCC_PLLCFGR_PLLM_3;
+
+	RCC->PLLCFGR &= ~RCC_PLLCFGR_PLLN;
+	RCC->PLLCFGR |=  RCC_PLLCFGR_PLLN_2;
+	RCC->PLLCFGR |=  RCC_PLLCFGR_PLLN_5;
+	RCC->PLLCFGR |=  RCC_PLLCFGR_PLLN_6;
+
+	RCC->PLLCFGR &= ~RCC_PLLCFGR_PLLP;
+
+	RCC->PLLCFGR &= ~RCC_PLLCFGR_PLLQ;
+	RCC->PLLCFGR |=  RCC_PLLCFGR_PLLQ_2;
+
+	RCC->CFGR &= ~RCC_CFGR_SW;
+	RCC->CFGR |=  RCC_CFGR_SW_PLL;
+
+	RCC->CFGR &= ~RCC_CFGR_SWS;
+	RCC->CFGR |=  RCC_CFGR_SWS_PLL;
+
+	RCC->CFGR &= ~RCC_CFGR_HPRE;
+	RCC->CFGR |=  RCC_CFGR_HPRE_DIV1;
+
+	RCC->CFGR &= ~RCC_CFGR_PPRE1;
+	RCC->CFGR |=  RCC_CFGR_PPRE1_DIV2;
+
+	RCC->CFGR &= ~RCC_CFGR_PPRE2;
+	RCC->CFGR |=  RCC_CFGR_PPRE2_DIV1;
+
+	RCC->CFGR |=  RCC_CFGR_MCO1;
+
+	RCC->CFGR &= ~RCC_CFGR_MCO1PRE;
+
+	__enable_irq();
+
+}
+
+void configTimers (void){
+
+	TIM2->CR1 &= ~TIM_CR1_CKD;
+	TIM2->CR1 |=  TIM_CR1_CKD_0;
+
+	TIM3->CR1 &= ~TIM_CR1_CKD;
+	TIM3->CR1 |=  TIM_CR1_CKD_0;
+
+	TIM4->CR1 &= ~TIM_CR1_CKD;
+	TIM4->CR1 |=  TIM_CR1_CKD_0;
+
+	TIM5->CR1 &= ~TIM_CR1_CKD;
+	TIM5->CR1 |=  TIM_CR1_CKD_0;
+
+}
