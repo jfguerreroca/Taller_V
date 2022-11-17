@@ -36,7 +36,7 @@ void set100MHzRCC (void){
 	// Escogemos que el PLL sea el system clock
 
 	RCC->CFGR &= ~RCC_CFGR_SW;
-	RCC->CFGR |=  RCC_CFGR_SW_PLL;\
+	RCC->CFGR |=  RCC_CFGR_SW_PLL;
 
 	// Configuramos los prescaler de los buses
 
