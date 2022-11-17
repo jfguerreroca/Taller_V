@@ -29,13 +29,13 @@
 
 // Definimos los handler para los perifericos necesarios en el proyecto
 
-USART_Handler_t 		handlerUSART2			= {0};
+USART_Handler_t 				handlerUSART2			= {0};
 
 BasicTimer_Handler_t 	        handlerTimer2 			= {0};
 
-GPIO_Handler_t 			handlerBlinkyLed 		= {0};
-GPIO_Handler_t			handlerTxPin			= {0};
-GPIO_Handler_t			handlerRxPin			= {0};
+GPIO_Handler_t 					handlerBlinkyLed 		= {0};
+GPIO_Handler_t					handlerTxPin			= {0};
+GPIO_Handler_t					handlerRxPin			= {0};
 
 
 // Definimos las variables que utilizaremos
@@ -58,6 +58,15 @@ void InitSystem(void);
 
 int main(void)
 {
+
+	/*
+	 * Llamando estas funciones, configuramos el micro para trabajar a 100 MHz.
+	 * Hay que tener en cuenta el orden de estas, ya que se debe llamar el config del basic timer primero
+	 * (en este caso, con el initsystem) y luego el configTimers, ya que la primera borra los registros que necesitamos
+	 * modificar.
+	 * Tambien se agregó al usart un parametro en la estructura, para que escoja los baud rates correctos, y en los timer
+	 * se agregaron constantes adecuadas para la velocidad del timer.
+	 */
 
 	set100MHzRCC();
 
