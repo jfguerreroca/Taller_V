@@ -11,7 +11,8 @@ void set100MHzRCC (void){
 
 	__disable_irq();
 
-	RCC->CR |= RCC_CR_PLLON;
+	FLASH->ACR &= ~FLASH_ACR_LATENCY;
+	FLASH->ACR |= FLASH_ACR_LATENCY_3WS;
 
 	RCC->PLLCFGR &= ~RCC_PLLCFGR_PLLM;
 	RCC->PLLCFGR |=  RCC_PLLCFGR_PLLM_3;
@@ -44,6 +45,8 @@ void set100MHzRCC (void){
 	RCC->CFGR |=  RCC_CFGR_MCO1;
 
 	RCC->CFGR &= ~RCC_CFGR_MCO1PRE;
+
+	RCC->CR |= RCC_CR_PLLON;
 
 	__enable_irq();
 
