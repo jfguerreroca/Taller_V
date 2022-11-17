@@ -40,8 +40,8 @@ GPIO_Handler_t					handlerRxPin			= {0};
 
 // Definimos las variables que utilizaremos
 
-uint8_t flagStatus 				= 0;
-uint8_t rxData	 				= 0;
+uint8_t flagStatus 										= 0;
+uint8_t rxData	 										= 0;
 
 
 // Definimos las funciones que vamos a utilizar:
@@ -62,8 +62,7 @@ int main(void)
 	/*
 	 * Llamando estas funciones, configuramos el micro para trabajar a 100 MHz.
 	 * Hay que tener en cuenta el orden de estas, ya que se debe llamar el config del basic timer primero
-	 * (en este caso, con el initsystem) y luego el configTimers, ya que la primera borra los registros que necesitamos
-	 * modificar.
+	 * (en este caso, con el initsystem) y luego el configTimers, ya que la primera puede modificar los registros que necesitamos.
 	 * Tambien se agregó al usart un parametro en la estructura, para que escoja los baud rates correctos, y en los timer
 	 * se agregaron constantes adecuadas para la velocidad del timer.
 	 */
