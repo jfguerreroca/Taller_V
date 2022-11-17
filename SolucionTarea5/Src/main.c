@@ -3,7 +3,7 @@
  * @file           : main.c
  * @author         : jfguerreroca
  * @name           : Juan Felipe Guerrero Cataño
- * @brief          : Tarea 4
+ * @brief          : Tarea 5
  ******************************************************************************
  *
  ******************************************************************************
@@ -31,7 +31,7 @@
 
 USART_Handler_t 		handlerUSART2			= {0};
 
-BasicTimer_Handler_t 	handlerTimer2 			= {0};
+BasicTimer_Handler_t 	        handlerTimer2 			= {0};
 
 GPIO_Handler_t 			handlerBlinkyLed 		= {0};
 GPIO_Handler_t			handlerTxPin			= {0};
