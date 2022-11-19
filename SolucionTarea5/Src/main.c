@@ -37,12 +37,10 @@ GPIO_Handler_t 					handlerBlinkyLed 		= {0};
 GPIO_Handler_t					handlerTxPin			= {0};
 GPIO_Handler_t					handlerRxPin			= {0};
 
-
 // Definimos las variables que utilizaremos
 
 uint8_t flagStatus 										= 0;
 uint8_t rxData	 										= 0;
-
 
 // Definimos las funciones que vamos a utilizar:
 
