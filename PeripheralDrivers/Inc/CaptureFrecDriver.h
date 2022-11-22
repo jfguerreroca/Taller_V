@@ -1,14 +1,15 @@
 /*
  * CaptureFrecDriver.h
  *
- *  Created on: 19 nov 2022
- *      Author: Felipe
+ *  Created on: Apr 18, 2022
+ *      Author: namontoy
  */
 
 #ifndef CAPTUREFRECDRIVER_H_
 #define CAPTUREFRECDRIVER_H_
 
 #include "stm32f4xx.h"
+#include <stdlib.h>
 
 #define CAPTURE_CHANNEL_1    0
 #define CAPTURE_CHANNEL_2    1
@@ -23,13 +24,11 @@
 #define CAPTURE_PREESCALER_4_1    2
 #define CAPTURE_PREESCALER_8_1    3
 
-#define CAPTURE_TIMER_SPEED_1us    16
-#define CAPTURE_TIMER_SPEED_10us   160
-#define CAPTURE_TIMER_SPEED_100us  1600
-#define CAPTURE_TIMER_SPEED_1ms    16000
+#define CAPTURE_TIMER_SPEED_1us    15
+#define CAPTURE_TIMER_SPEED_10us   159
+#define CAPTURE_TIMER_SPEED_100us  1599
+#define CAPTURE_TIMER_SPEED_1ms    15999
 
-
-/**/
 typedef struct
 {
 	uint8_t    channel;           // Canal PWM relacionado con el TIMER
@@ -47,6 +46,12 @@ typedef struct
 
 /* Prototipos de las funciones */
 void capture_Config(Capture_Handler_t  *ptrCaptureHandler);
-uint32_t getPeriodFrec(Capture_Handler_t  *ptrCaptureHandler);
+uint32_t getTimeStamp(Capture_Handler_t  *ptrCaptureHandler);
+uint32_t getPeriodFrec(Capture_Handler_t  *ptrCaptureHandler, uint32_t ts1, uint32_t ts2 );
+void cleanData(Capture_Handler_t *ptrCaptureHandler);
+void CaptureFrec1_Callback(void);
+void CaptureFrec2_Callback(void);
+void CaptureFrec3_Callback(void);
+void CaptureFrec4_Callback(void);
 
 #endif /* CAPTUREFRECDRIVER_H_ */
