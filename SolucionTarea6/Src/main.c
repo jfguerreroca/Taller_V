@@ -28,10 +28,10 @@ GPIO_Handler_t 					handlerBlinkyLed 		= {0};
 GPIO_Handler_t					handlerTxPin			= {0};
 GPIO_Handler_t					handlerRxPin			= {0};
 GPIO_Handler_t					handlerPinPWM			= {0};
-
 GPIO_Handler_t					handlerCaptureSignal 	= {0};
 
 Capture_Handler_t				handlerCapture          = {0};
+
 PWM_Handler_t 					handlerPwm 				= {0};
 
 // Definimos las variables que utilizaremos

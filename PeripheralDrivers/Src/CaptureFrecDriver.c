@@ -7,8 +7,6 @@
 
 #include "CaptureFrecDriver.h"
 
-/**/
-/**/
 void capture_Config(Capture_Handler_t *ptrCaptureHandler){
 
 	__disable_irq();
