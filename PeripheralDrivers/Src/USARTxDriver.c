@@ -302,3 +302,10 @@ void USART6_IRQHandler(void){
 	}
 }
 
+/*
+ * Juan Felipe, algunas observaciones:
+ * - No tienes en cuenta que el bus APB1 (USART1 y USART6) corre mas rapido que el APB2 (USART2), por lo cual toda tu
+ *   configuracion queda solo sirviendo para el USART2, los otros dos dejan de funcionar.
+ *
+ *  Calificación = 3.1
+ * */
