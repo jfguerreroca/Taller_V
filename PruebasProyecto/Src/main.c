@@ -68,6 +68,8 @@ void StepperMotorY2(uint8_t);
 
 int main(void)
 {
+	SCB -> CPACR |= 0xF << 20;
+
 	InitSystem();
 
 	/* Ciclo infinito del main */
@@ -78,42 +80,39 @@ int main(void)
 			GPIOxTogglePin(&handlerBlinkyLed);
 		}
 
-		//Secuencia Y1
+		//Secuencia motores en Y
 
 		SMlowY1();
 		SMlowY2();
 		StepperMotorY1(1);
 		StepperMotorY2(1);
-		for (int i=0;(i<6000);i++){
-			__NOP();
-		}
+		delay(50);
+
 		SMlowY1();
 		SMlowY2();
 		StepperMotorY1(2);
 		StepperMotorY2(2);
-		for (int i=0;(i<6000);i++){
-			__NOP();
-		}
+		delay(50);
+
 		SMlowY1();
 		SMlowY2();
 		StepperMotorY1(3);
 		StepperMotorY2(3);
-		for (int i=0;(i<6000);i++){
-			__NOP();
-		}
+		delay(50);
+
 		SMlowY1();
 		SMlowY2();
 		StepperMotorY1(4);
 		StepperMotorY2(4);
-		for (int i=0;(i<6000);i++){
-			__NOP();
-		}
+		delay(50);
 	}
 
 	return 0;
 }
 
 void InitSystem(void){
+
+	config_SysTickMs();
 
 	handlerBlinkyLed.pGPIOx 										= GPIOA;
 	handlerBlinkyLed.GPIO_PinConfig.GPIO_PinNumber 					= PIN_5;
