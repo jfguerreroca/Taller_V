@@ -45,6 +45,9 @@ GPIO_Handler_t 					handlerStepperD_Y2 		= {0};
 // Definimos las variables que utilizaremos
 
 uint8_t flagStatus 										= 0;
+double delayTime										= 0;
+uint16_t rpm											= 0;
+uint16_t steps											= 0;
 
 // Definimos las funciones que vamos a utilizar:
 
@@ -64,6 +67,8 @@ void StepperMotorY1(uint8_t);
 
 void StepperMotorY2(uint8_t);
 
+double RPMtoDelay (uint16_t);
+
 // Funcion principal del programa
 
 int main(void)
@@ -71,6 +76,10 @@ int main(void)
 	SCB -> CPACR |= 0xF << 20;
 
 	InitSystem();
+
+	// 416 rpm es el maximo
+	rpm = 250;
+
 
 	/* Ciclo infinito del main */
 	while(1){
@@ -80,31 +89,74 @@ int main(void)
 			GPIOxTogglePin(&handlerBlinkyLed);
 		}
 
+		//delay minimo admisible es de 3 ms
+
 		//Secuencia motores en Y
 
-		SMlowY1();
-		SMlowY2();
-		StepperMotorY1(1);
-		StepperMotorY2(1);
-		delay(50);
+		delayTime = RPMtoDelay(rpm);
+
+		steps = 192;
+
+		uint8_t j = 1;
+
+		for(uint8_t i = 1; i <= steps; i++){
+			SMlowY1();
+			SMlowY2();
+			StepperMotorY1(j);
+			StepperMotorY2(j);
+			delay((uint32_t) delayTime);
+			if(j == 4){
+				j = 0;
+			}
+			j++;
+		}
 
 		SMlowY1();
 		SMlowY2();
-		StepperMotorY1(2);
-		StepperMotorY2(2);
-		delay(50);
+		delay(500);
+
+		j = 5;
+
+		for(uint8_t i = steps; i >= 1; i--){
+			SMlowY1();
+			SMlowY2();
+			StepperMotorY1(j);
+			StepperMotorY2(j);
+			delay((uint32_t) delayTime);
+			if(j == 1){
+				j = 5;
+			}
+			j--;
+		}
 
 		SMlowY1();
 		SMlowY2();
-		StepperMotorY1(3);
-		StepperMotorY2(3);
-		delay(50);
+		delay(500);
 
-		SMlowY1();
-		SMlowY2();
-		StepperMotorY1(4);
-		StepperMotorY2(4);
-		delay(50);
+
+//		SMlowY1();
+//		SMlowY2();
+//		StepperMotorY1(1);
+//		StepperMotorY2(1);
+//		delay((uint32_t) delayTime);
+//
+//		SMlowY1();
+//		SMlowY2();
+//		StepperMotorY1(2);
+//		StepperMotorY2(2);
+//		delay((uint32_t) delayTime);
+//
+//		SMlowY1();
+//		SMlowY2();
+//		StepperMotorY1(3);
+//		StepperMotorY2(3);
+//		delay((uint32_t) delayTime);
+//
+//		SMlowY1();
+//		SMlowY2();
+//		StepperMotorY1(4);
+//		StepperMotorY2(4);
+//		delay((uint32_t) delayTime);
 	}
 
 	return 0;
@@ -338,6 +390,12 @@ void SMlowY2(void){
 	GPIO_WritePin(&handlerStepperB_Y2, RESET);
 	GPIO_WritePin(&handlerStepperC_Y2, RESET);
 	GPIO_WritePin(&handlerStepperD_Y2, RESET);
+}
+
+double RPMtoDelay (uint16_t rpm){
+	double delay = 60000 / (rpm*48);
+
+	return delay;
 }
 
 void BasicTimer2_Callback(void){
