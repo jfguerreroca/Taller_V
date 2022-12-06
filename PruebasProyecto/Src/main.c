@@ -57,9 +57,13 @@ GPIO_Handler_t 					handlerStepperD_Y2 		= {0};
 // Definimos las variables que utilizaremos
 
 uint8_t flagStatus 										= 0;
-double delayTime										= 0;
-uint16_t rpm											= 0;
+double delayTimeX										= 0;
+double delayTimeY										= 0;
+uint16_t rpmX											= 0;
+uint16_t rpmY											= 0;
 uint16_t steps											= 0;
+int counterX											= 0;
+int	counterY											= 0;
 signed int firstParameter 								= 0;
 signed int secondParameter 								= 0;
 uint8_t rxData 											= 0;
@@ -91,15 +95,17 @@ void StepperMotorY1(uint8_t);
 
 void StepperMotorY2(uint8_t);
 
-double RPMtoDelay (uint16_t);
+double RPMtoDelayX (uint16_t);
 
-void stepsY_CW (uint16_t);
-
-void stepsY_CCW (uint16_t);
+double RPMtoDelayY (uint16_t);
 
 void stepsX_CW (uint16_t);
 
 void stepsX_CCW (uint16_t);
+
+void stepsY_CW (uint16_t);
+
+void stepsY_CCW (uint16_t);
 
 // Funcion principal del programa
 
@@ -109,10 +115,11 @@ int main(void)
 
 	InitSystem();
 
-	rpm = 50;
-	delayTime = RPMtoDelay(rpm);
+	rpmX = 200;
+	rpmY = 100;
 
-
+	delayTimeX = RPMtoDelayX(rpmX);
+	delayTimeY = RPMtoDelayY(rpmY);
 
 	/* Ciclo infinito del main */
 	while(1){
@@ -391,7 +398,13 @@ void SMlowY2(void){
 	GPIO_WritePin(&handlerStepperD_Y2, RESET);
 }
 
-double RPMtoDelay (uint16_t rpm){
+double RPMtoDelayX (uint16_t rpm){
+	double delay = 60000 / (rpm*48);
+
+	return delay;
+}
+
+double RPMtoDelayY (uint16_t rpm){
 	double delay = 60000 / (rpm*48);
 
 	return delay;
@@ -404,11 +417,15 @@ void stepsY_CW(uint16_t steps){
 		SMlowY2();
 		StepperMotorY1(j);
 		StepperMotorY2(j);
-		delay((uint32_t) delayTime);
+		delay((uint32_t) delayTimeY);
 		if(j == 4){
 			j = 0;
 		}
 		j++;
+		counterY += 1;
+		if(counterY < 0){
+			counterY = 0;
+		}
 	}
 
 	SMlowY1();
@@ -417,16 +434,20 @@ void stepsY_CW(uint16_t steps){
 
 void stepsY_CCW(uint16_t steps){
 	uint8_t h = 5;
-	for(uint16_t k = steps+1; k >= 1; k--){
+	for(uint16_t k = steps; k >= 1; k--){
 		SMlowY1();
 		SMlowY2();
 		StepperMotorY1(h);
 		StepperMotorY2(h);
-		delay((uint32_t) delayTime);
+		delay((uint32_t) delayTimeY);
 		if(h == 1){
 			h = 5;
 		}
 		h--;
+		counterY -= 1;
+		if(counterY < 0){
+			counterY = 0;
+		}
 	}
 
 	SMlowY1();
@@ -438,26 +459,36 @@ void stepsX_CW(uint16_t steps){
 	for(uint16_t m = 1; m <= steps; m++){
 		SMlowX();
 		StepperMotorX(l);
-		delay((uint32_t) delayTime);
+		delay((uint32_t) delayTimeX);
 		if(l == 4){
 			l = 0;
 		}
 		l++;
+		counterX += 1;
+		if(counterX < 0){
+			counterX = 0;
+		}
 	}
+
 	SMlowX();
 }
 
 void stepsX_CCW(uint16_t steps){
 	uint8_t n = 5;
-	for(uint16_t o = steps+1; o >= 1; o--){
+	for(uint16_t o = steps; o >= 1; o--){
 		SMlowX();
 		StepperMotorX(n);
-		delay((uint32_t) delayTime);
+		delay((uint32_t) delayTimeX);
 		if(n == 1){
 			n = 5;
 		}
 		n--;
+		counterX -= 1;
+		if(counterX < 0){
+			counterX = 0;
+		}
 	}
+
 	SMlowX();
 }
 
@@ -483,7 +514,9 @@ void parseCommands (char *ptrBufferReception){
 		writeMsg(&handlerUSART2, "2) dummy				----	prints a test message\n");
 		writeMsg(&handlerUSART2, "3) moveY #steps		----	moves the # steps - Y axis (CW -> + or CCW -> -)\n");
 		writeMsg(&handlerUSART2, "4) moveX #steps		----	moves the # steps - X axis (CW -> + or CCW -> -)\n");
-		writeMsg(&handlerUSART2, "5) rpm #n				----	update rpm (max 200 rpm)\n");
+		writeMsg(&handlerUSART2, "5) rpmX #n			----	update rpm (max 200 rpm)\n");
+		writeMsg(&handlerUSART2, "6) rpmY #n			----	update rpm (max 100 rpm)\n");
+		writeMsg(&handlerUSART2, "7) reset				----	set default values\n");
 	}else if(strcmp(cmd, "dummy") == 0 || strcmp(cmd, "2") == 0){
 		writeMsg(&handlerUSART2, "\n\rCMD: dummy working\n\r");
 	}else if(strcmp(cmd, "moveY") == 0 || strcmp(cmd, "3") == 0){
@@ -491,10 +524,14 @@ void parseCommands (char *ptrBufferReception){
 			stepsY_CW((int) firstParameter);
 			sprintf(bufferData, "\n\rSteps Y axis CW: %u\n\r", firstParameter);
 			writeMsg(&handlerUSART2, bufferData);
+			sprintf(bufferData, "\n\rCounter Y axis: %u\n\r", counterY);
+			writeMsg(&handlerUSART2, bufferData);
 		}else{
 			firstParameter = firstParameter * -1;
 			stepsY_CCW((int) firstParameter);
 			sprintf(bufferData, "\n\rSteps Y axis CCW: -%u\n\r", firstParameter);
+			writeMsg(&handlerUSART2, bufferData);
+			sprintf(bufferData, "\n\rCounter Y axis: %u\n\r", counterY);
 			writeMsg(&handlerUSART2, bufferData);
 		}
 	}else if(strcmp(cmd, "moveX") == 0 || strcmp(cmd, "4") == 0){
@@ -502,25 +539,59 @@ void parseCommands (char *ptrBufferReception){
 			stepsX_CW((int) firstParameter);
 			sprintf(bufferData, "\n\rSteps X axis CW: %u\n\r", firstParameter);
 			writeMsg(&handlerUSART2, bufferData);
+			sprintf(bufferData, "\n\rCounter X axis: %u\n\r", counterX);
+			writeMsg(&handlerUSART2, bufferData);
 		}else{
 			firstParameter = firstParameter * -1;
 			stepsX_CCW((int) firstParameter);
 			sprintf(bufferData, "\n\rSteps X axis CCW: -%u\n\r", firstParameter);
 			writeMsg(&handlerUSART2, bufferData);
+			sprintf(bufferData, "\n\rCounter X axis: %u\n\r", counterX);
+			writeMsg(&handlerUSART2, bufferData);
 		}
-	}else if(strcmp(cmd, "rpm") == 0 || strcmp(cmd, "5") == 0){
+	}else if(strcmp(cmd, "rpmX") == 0 || strcmp(cmd, "5") == 0){
 		if(firstParameter > 0){
 			if(firstParameter >= 200){
-				delayTime = RPMtoDelay(200);
-				writeMsg(&handlerUSART2, "\n\rRPM updated: 200\n\r");
+				delayTimeX = RPMtoDelayX(200);
+				writeMsg(&handlerUSART2, "\n\rRPM X updated: 200\n\r");
 			}else{
-				delayTime = RPMtoDelay(firstParameter);
-				sprintf(bufferData, "\n\rRPM updated: %u\n\r", firstParameter);
+				delayTimeX = RPMtoDelayX(firstParameter);
+				sprintf(bufferData, "\n\rRPM X updated: %u\n\r", firstParameter);
 				writeMsg(&handlerUSART2, bufferData);
 			}
 		}else{
 			sprintf(bufferData, "\n\rIngrese un valor mayor a 0. Valor incorrecto -> %u\n\r", firstParameter);
 			writeMsg(&handlerUSART2, bufferData);
 		}
+	}else if(strcmp(cmd, "rpmY") == 0 || strcmp(cmd, "6") == 0){
+		if(firstParameter > 0){
+			if(firstParameter >= 100){
+				delayTimeY = RPMtoDelayY(100);
+				writeMsg(&handlerUSART2, "\n\rRPM Y updated: 100\n\r");
+			}else{
+				delayTimeY = RPMtoDelayY(firstParameter);
+				sprintf(bufferData, "\n\rRPM Y updated: %u\n\r", firstParameter);
+				writeMsg(&handlerUSART2, bufferData);
+			}
+		}else{
+			sprintf(bufferData, "\n\rIngrese un valor mayor a 0. Valor incorrecto -> %u\n\r", firstParameter);
+			writeMsg(&handlerUSART2, bufferData);
+		}
+	}else if(strcmp(cmd, "reset") == 0 || strcmp(cmd, "7") == 0){
+		counterX = 0;
+		counterY = 0;
+		rpmX = 200;
+		rpmY = 100;
+		writeMsg(&handlerUSART2, "\n\rSystem default values OK\n\r");
+		sprintf(bufferData, "\n\rRPM X updated: %u\n\r", rpmX);
+		writeMsg(&handlerUSART2, bufferData);
+		sprintf(bufferData, "\n\rRPM Y updated: %u\n\r", rpmY);
+		writeMsg(&handlerUSART2, bufferData);
+		sprintf(bufferData, "\n\rCoordinates X: %u Y: %u\n\r", counterX, counterY);
+		writeMsg(&handlerUSART2, bufferData);
+	}else if(strcmp(cmd, "X") == 0 || strcmp(cmd, "8") == 0){
+
+	}else if(strcmp(cmd, "Y") == 0 || strcmp(cmd, "9") == 0){
+
 	}
 }
