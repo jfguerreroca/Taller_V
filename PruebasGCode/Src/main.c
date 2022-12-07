@@ -54,9 +54,19 @@ GPIO_Handler_t 					handlerStepperB_Y2 		= {0};
 GPIO_Handler_t 					handlerStepperC_Y2 		= {0};
 GPIO_Handler_t 					handlerStepperD_Y2 		= {0};
 
+GPIO_Handler_t					handlerSwitchX			= {0};
+GPIO_Handler_t					handlerSwitchY			= {0};
+
+GPIO_Handler_t					handlerLaser			= {0};
+
+EXTI_Config_t					EXTI_SwitchX			= {0};
+EXTI_Config_t					EXTI_SwitchY			= {0};
+
 // Definimos las variables que utilizaremos
 
 uint8_t flagStatus 										= 0;
+uint8_t flagSwitchX 									= 0;
+uint8_t flagSwitchY										= 0;
 uint8_t rxData 											= 0;
 uint8_t counterReception 								= 0;
 double delayTimeX										= 0;
@@ -76,6 +86,7 @@ char bufferReception[64] 								= {0};
 char bufferData[64] 									= {0};
 char userMsg[64] 										= {0};
 char cmd[64];
+char gcode[64];
 bool stringComplete 									= false;
 
 
@@ -111,13 +122,13 @@ void stepsY_CW (uint16_t);
 
 void stepsY_CCW (uint16_t);
 
-void stepsXYDiag_CW (uint16_t);
+void stepsXYDiag_CW (uint16_t, uint16_t);
 
-void stepsXYDiag_CCW (uint16_t);
+void stepsXYDiag_CCW (uint16_t, uint16_t);
 
-void stepsXYDiagInv_CW(uint16_t);
+void stepsXYDiagInv_CW(uint16_t, uint16_t);
 
-void stepsXYDiagInv_CCW(uint16_t);
+void stepsXYDiagInv_CCW(uint16_t, uint16_t);
 
 // Funcion principal del programa
 
@@ -156,6 +167,16 @@ int main(void)
 		if (stringComplete){
 			parseCommands(bufferReception);
 			stringComplete = false;
+		}
+
+		if(flagSwitchX){
+			flagSwitchX = 0;
+			counterX = 576;
+		}
+
+		if(flagSwitchY){
+			flagSwitchY = 0;
+			counterY = 540;
 		}
 }
 
@@ -282,7 +303,7 @@ void InitSystem(void){
 	GPIO_Config(&handlerStepperD_Y2);
 	GPIO_WritePin(&handlerStepperD_Y2, RESET);
 
-	handlerTxPin.pGPIOx = GPIOA;
+	handlerTxPin.pGPIOx 											= GPIOA;
 	handlerTxPin.GPIO_PinConfig.GPIO_PinNumber 						= PIN_2;
 	handlerTxPin.GPIO_PinConfig.GPIO_PinMode 						= GPIO_MODE_ALTFN;
 	handlerTxPin.GPIO_PinConfig.GPIO_PinOPType 						= GPIO_OTYPE_PUSHPULL;
@@ -291,7 +312,7 @@ void InitSystem(void){
 	handlerTxPin.GPIO_PinConfig.GPIO_PinAltFunMode					= AF7;
 	GPIO_Config(&handlerTxPin);
 
-	handlerRxPin.pGPIOx = GPIOA;
+	handlerRxPin.pGPIOx 											= GPIOA;
 	handlerRxPin.GPIO_PinConfig.GPIO_PinNumber 						= PIN_3;
 	handlerRxPin.GPIO_PinConfig.GPIO_PinMode 						= GPIO_MODE_ALTFN;
 	handlerRxPin.GPIO_PinConfig.GPIO_PinOPType 						= GPIO_OTYPE_PUSHPULL;
@@ -299,6 +320,33 @@ void InitSystem(void){
 	handlerRxPin.GPIO_PinConfig.GPIO_PinPuPdControl 				= GPIO_PUPDR_NOTHING;
 	handlerRxPin.GPIO_PinConfig.GPIO_PinAltFunMode					= AF7;
 	GPIO_Config(&handlerRxPin);
+
+	handlerSwitchX.pGPIOx 											= GPIOA;
+	handlerSwitchX.GPIO_PinConfig.GPIO_PinNumber					= PIN_0;
+	handlerSwitchX.GPIO_PinConfig.GPIO_PinMode						= GPIO_MODE_IN;
+	handlerSwitchX.GPIO_PinConfig.GPIO_PinOPType					= GPIO_OTYPE_PUSHPULL;
+	handlerSwitchX.GPIO_PinConfig.GPIO_PinPuPdControl				= GPIO_PUPDR_NOTHING;
+	handlerSwitchX.GPIO_PinConfig.GPIO_PinSpeed						= GPIO_OSPEED_FAST;
+	handlerSwitchX.GPIO_PinConfig.GPIO_PinAltFunMode				= AF0;
+	GPIO_Config(&handlerSwitchX);
+
+	handlerSwitchY.pGPIOx 											= GPIOA;
+	handlerSwitchY.GPIO_PinConfig.GPIO_PinNumber					= PIN_1;
+	handlerSwitchY.GPIO_PinConfig.GPIO_PinMode						= GPIO_MODE_IN;
+	handlerSwitchY.GPIO_PinConfig.GPIO_PinOPType					= GPIO_OTYPE_PUSHPULL;
+	handlerSwitchY.GPIO_PinConfig.GPIO_PinPuPdControl				= GPIO_PUPDR_NOTHING;
+	handlerSwitchY.GPIO_PinConfig.GPIO_PinSpeed						= GPIO_OSPEED_FAST;
+	handlerSwitchY.GPIO_PinConfig.GPIO_PinAltFunMode				= AF0;
+	GPIO_Config(&handlerSwitchY);
+
+	handlerLaser.pGPIOx 											= GPIOA;
+	handlerLaser.GPIO_PinConfig.GPIO_PinNumber 						= PIN_10;
+	handlerLaser.GPIO_PinConfig.GPIO_PinMode 						= GPIO_MODE_OUT;
+	handlerLaser.GPIO_PinConfig.GPIO_PinOPType 						= GPIO_OTYPE_PUSHPULL;
+	handlerLaser.GPIO_PinConfig.GPIO_PinSpeed 						= GPIO_OSPEED_FAST;
+	handlerLaser.GPIO_PinConfig.GPIO_PinPuPdControl 				= GPIO_PUPDR_NOTHING;
+	GPIO_Config(&handlerLaser);
+	GPIO_WritePin(&handlerLaser, RESET);
 
 	handlerTimer2.ptrTIMx 											= TIM2;
 	handlerTimer2.TIMx_Config.TIMx_mode 							= BTIMER_MODE_UP;
@@ -315,6 +363,14 @@ void InitSystem(void){
 	handlerUSART2.USART_Config.USART_stopbits             			= USART_STOPBIT_1;
 	handlerUSART2.USART_Config.USART_enableIntRX          			= USART_RX_INTERRUP_ENABLE;
 	USART_Config(&handlerUSART2);
+
+	EXTI_SwitchX.edgeType 											= EXTERNAL_INTERRUPT_RISING_EDGE;
+	EXTI_SwitchX.pGPIOHandler 										= &handlerSwitchX;
+	extInt_Config(&EXTI_SwitchX);
+
+	EXTI_SwitchY.edgeType 											= EXTERNAL_INTERRUPT_RISING_EDGE;
+	EXTI_SwitchY.pGPIOHandler 										= &handlerSwitchY;
+	extInt_Config(&EXTI_SwitchY);
 }
 
 void StepperMotorX(uint8_t motor){
@@ -435,7 +491,7 @@ void stepsY_CW(uint16_t steps){
 		}
 		j++;
 		counterY += 1;
-		if(counterY < 0 || counter > 540){
+		if(counterY < 0 || counterY > 540){
 			break;
 		}
 	}
@@ -457,7 +513,7 @@ void stepsY_CCW(uint16_t steps){
 		}
 		h--;
 		counterY -= 1;
-		if(counterY < 0 || counter > 540){
+		if(counterY < 0 || counterY > 540){
 			break;
 		}
 	}
@@ -477,7 +533,7 @@ void stepsX_CW(uint16_t steps){
 		}
 		l++;
 		counterX += 1;
-		if(counterX < 0 || counter > 576){
+		if(counterX < 0 || counterX > 576){
 			break;
 		}
 	}
@@ -496,7 +552,7 @@ void stepsX_CCW(uint16_t steps){
 		}
 		n--;
 		counterX -= 1;
-		if(counterX < 0 || counter > 576){
+		if(counterX < 0 || counterX > 576){
 			break;
 		}
 	}
@@ -504,7 +560,7 @@ void stepsX_CCW(uint16_t steps){
 	SMlowX();
 }
 
-void stepsXYDiag_CW(uint16_t steps){
+void stepsXYDiag_CW(uint16_t steps, uint16_t steps2){
 	uint8_t j = 1;
 	for(uint16_t i = 1; i <= steps; i++){
 		SMlowX();
@@ -520,10 +576,10 @@ void stepsXYDiag_CW(uint16_t steps){
 		j++;
 		counterX += 1;
 		counterY += 1;
-		if(counterX < 0 || counter > 576){
+		if(counterX < 0 || counterX > 576){
 			break;
 		}
-		if(counterY < 0 || counter > 540){
+		if(counterY < 0 || counterY > 540){
 			break;
 		}
 	}
@@ -532,7 +588,7 @@ void stepsXYDiag_CW(uint16_t steps){
 	SMlowY2();
 }
 
-void stepsXYDiag_CCW(uint16_t steps){
+void stepsXYDiag_CCW(uint16_t steps, uint16_t steps2){
 	uint8_t n = 5;
 	for(uint16_t o = steps; o >= 1; o--){
 		SMlowX();
@@ -548,10 +604,10 @@ void stepsXYDiag_CCW(uint16_t steps){
 		n--;
 		counterX -= 1;
 		counterY -= 1;
-		if(counterX < 0 || counter > 576){
+		if(counterX < 0 || counterX > 576){
 			break;
 		}
-		if(counterY < 0 || counter > 540){
+		if(counterY < 0 || counterY > 540){
 			break;
 		}
 	}
@@ -560,7 +616,7 @@ void stepsXYDiag_CCW(uint16_t steps){
 	SMlowY2();
 }
 
-void stepsXYDiagInv_CW(uint16_t steps){
+void stepsXYDiagInv_CW(uint16_t steps, uint16_t steps2){
 	uint8_t n = 5;
 	uint8_t j = 1;
 	for(uint16_t o = steps; o >= 1; o--){
@@ -571,7 +627,7 @@ void stepsXYDiagInv_CW(uint16_t steps){
 		}
 		n--;
 		counterX -= 1;
-		if(counterX < 0 || counter > 576){
+		if(counterX < 0 || counterX > 576){
 			break;
 		}
 		for(uint16_t i = 1; i <= steps; i++){
@@ -585,7 +641,7 @@ void stepsXYDiagInv_CW(uint16_t steps){
 			}
 			j++;
 			counterY += 1;
-			if(counterY < 0 || counter > 540){
+			if(counterY < 0 || counterY > 540){
 				break;
 			}
 			break;
@@ -597,7 +653,7 @@ void stepsXYDiagInv_CW(uint16_t steps){
 	SMlowY2();
 }
 
-void stepsXYDiagInv_CCW(uint16_t steps){
+void stepsXYDiagInv_CCW(uint16_t steps, uint16_t steps2){
 	uint8_t l = 1;
 	uint8_t h = 5;
 	for(uint16_t m = 1; m <= steps; m++){
@@ -608,10 +664,10 @@ void stepsXYDiagInv_CCW(uint16_t steps){
 		}
 		l++;
 		counterX += 1;
-		if(counterX < 0 || counter > 576){
+		if(counterX < 0 || counterX > 576){
 			break;
 		}
-		for(uint16_t k = steps; k >= 1; k--){
+		for(uint16_t k = steps2; k >= 1; k--){
 			SMlowY1();
 			SMlowY2();
 			StepperMotorY1(h);
@@ -622,7 +678,7 @@ void stepsXYDiagInv_CCW(uint16_t steps){
 			}
 			h--;
 			counterY -= 1;
-			if(counterY < 0 || counter > 540){
+			if(counterY < 0 || counterY > 540){
 				break;
 			}
 			break;
@@ -642,26 +698,34 @@ void usart2Rx_Callback(void){
 	rxData = getRxData();
 }
 
+void callback_extInt0(void){
+	flagSwitchX = 1;
+}
+
+void callback_extInt1(void){
+	flagSwitchY = 1;
+}
+
 void parseCommands (char *ptrBufferReception){
 	// Esta función lee la cadena de caracteres a lo que apunta el 'ptr' y la divide
 	// y almacena en tres elementos diferentes: Un string llamado 'cmd', y dos números
 	// integer llamados 'firstParameter' y 'secondparameter', de esta forma, es posible
 	// introducir información al micro desde el puerto serial.
-	sscanf(ptrBufferReception, "%s %u %u %s", cmd, &firstParameter, &secondParameter, userMsg);
+	sscanf(ptrBufferReception, "%s %s %u %u %s", cmd, gcode, &firstParameter, &secondParameter, userMsg);
 	// Este primer comando imprime una lista con los otros comandos que tiene el equipo.
 	if(strcmp(cmd, "help") == 0 || strcmp(cmd, "1") == 0){
 		writeMsg(&handlerUSART2, "\n");
 		writeMsg(&handlerUSART2, "Help menus CMDs:\n");
 		writeMsg(&handlerUSART2, "1) help					----	print this menu\n");
 		writeMsg(&handlerUSART2, "2) dummy					----	prints a test message\n");
-		writeMsg(&handlerUSART2, "3) moveY #steps			----	moves the # steps - Y axis (CW -> + or CCW -> -)\n");
-		writeMsg(&handlerUSART2, "4) moveX #steps			----	moves the # steps - X axis (CW -> + or CCW -> -)\n");
-		writeMsg(&handlerUSART2, "5) moveDiag #steps		----	moves the # steps - Diagonal (CW -> + or CCW -> -)\n");
-		writeMsg(&handlerUSART2, "6) moveDiagInv #steps		----	moves the # steps - Diagonal (CW -> + or CCW -> -)\n");
+		writeMsg(&handlerUSART2, "3) moveY #n				----	moves the #n steps - Y axis (CW -> + or CCW -> -)\n");
+		writeMsg(&handlerUSART2, "4) moveX #n				----	moves the #n steps - X axis (CW -> + or CCW -> -)\n");
+		writeMsg(&handlerUSART2, "5) moveDiag #n			----	moves the #n steps - Diagonal (CW -> + or CCW -> -)\n");
+		writeMsg(&handlerUSART2, "6) moveDiagInv #n			----	moves the #n steps - Diagonal (CW -> + or CCW -> -)\n");
 		writeMsg(&handlerUSART2, "7) rpmX #n				----	update rpm (max 200 rpm)\n");
 		writeMsg(&handlerUSART2, "8) rpmY #n				----	update rpm (max 100 rpm)\n");
 		writeMsg(&handlerUSART2, "9) reset					----	set default values\n");
-		writeMsg(&handlerUSART2, "10) gcode					----	GCode input \n");
+		writeMsg(&handlerUSART2, "10) gcode	#s				----	GCode input \n");
 	}else if(strcmp(cmd, "dummy") == 0 || strcmp(cmd, "2") == 0){
 		writeMsg(&handlerUSART2, "\n\rCMD: dummy working\n\r");
 	}else if(strcmp(cmd, "moveY") == 0 || strcmp(cmd, "3") == 0){
@@ -715,7 +779,7 @@ void parseCommands (char *ptrBufferReception){
 			writeMsg(&handlerUSART2, "\n\rWrong coordinates, off limits\n\r");
 		}else{
 			if(firstParameter > 0){
-				stepsXYDiag_CW((int) firstParameter);
+				stepsXYDiag_CW((int) firstParameter, (int) firstParameter);
 				sprintf(bufferData, "\n\rDiagonal Steps CW: %u\n\r", firstParameter);
 				writeMsg(&handlerUSART2, bufferData);
 				sprintf(bufferData, "\n\rCounter X axis: %u\n\r", counterX);
@@ -724,7 +788,7 @@ void parseCommands (char *ptrBufferReception){
 				writeMsg(&handlerUSART2, bufferData);
 			}else{
 				firstParameter = firstParameter * -1;
-				stepsXYDiag_CCW((int) firstParameter);
+				stepsXYDiag_CCW((int) firstParameter, (int) firstParameter);
 				sprintf(bufferData, "\n\rDiagonal Steps CCW: %u\n\r", firstParameter);
 				writeMsg(&handlerUSART2, bufferData);
 				sprintf(bufferData, "\n\rCounter X axis: %u\n\r", counterX);
@@ -742,7 +806,7 @@ void parseCommands (char *ptrBufferReception){
 			writeMsg(&handlerUSART2, "\n\rWrong coordinates, off limits\n\r");
 		}else{
 			if(firstParameter > 0){
-				stepsXYDiagInv_CW((int) firstParameter);
+				stepsXYDiagInv_CW((int) firstParameter, (int) firstParameter);
 				sprintf(bufferData, "\n\rInverted Diagonal Steps CW: %u\n\r", firstParameter);
 				writeMsg(&handlerUSART2, bufferData);
 				sprintf(bufferData, "\n\rCounter X axis: %u\n\r", counterX);
@@ -751,7 +815,7 @@ void parseCommands (char *ptrBufferReception){
 				writeMsg(&handlerUSART2, bufferData);
 			}else{
 				firstParameter = firstParameter * -1;
-				stepsXYDiagInv_CCW((int) firstParameter);
+				stepsXYDiagInv_CCW((int) firstParameter, (int) firstParameter);
 				sprintf(bufferData, "\n\rInverted Diagonal Steps CCW: %u\n\r", firstParameter);
 				writeMsg(&handlerUSART2, bufferData);
 				sprintf(bufferData, "\n\rCounter X axis: %u\n\r", counterX);
@@ -793,6 +857,8 @@ void parseCommands (char *ptrBufferReception){
 		counterY = 0;
 		rpmX = 200;
 		rpmY = 100;
+		delayTimeX = RPMtoDelayX(rpmX);
+		delayTimeY = RPMtoDelayY(rpmY);
 		writeMsg(&handlerUSART2, "\n\rSystem default values OK\n\r");
 		sprintf(bufferData, "\n\rRPM X updated: %u\n\r", rpmX);
 		writeMsg(&handlerUSART2, bufferData);
@@ -800,5 +866,106 @@ void parseCommands (char *ptrBufferReception){
 		writeMsg(&handlerUSART2, bufferData);
 		sprintf(bufferData, "\n\rCoordinates X: %u Y: %u\n\r", counterX, counterY);
 		writeMsg(&handlerUSART2, bufferData);
+	}else if(strcmp(cmd, "gcode") == 0 || strcmp(cmd, "10") == 0){
+		int espacios[6] = {0};
+		char espaciosStr[6] = {0};
+		int j=0;
+		char G[] = {0};
+		char X[] = {0};
+		char Y[] = {0};
+		char F[] = {0};
+		char S[] = {0};
+		int numG;
+		int numX;
+		int numY;
+		int numF;
+		int numS;
+		for(int i = 0; i <= strlen(gcode); i++){
+			if(gcode[i]=='_' || gcode[i]=='\0'){
+	          espaciosStr[j] = gcode[i];
+			  espacios[j] = i;
+			  j++;
+			}
+		  }
+	    int numesp = strlen(espaciosStr);
+	    sprintf(bufferData, "\n\rNumero de parametros: %d ", numesp+1);
+	    writeMsg(&handlerUSART2, bufferData);
+	    G[0] = gcode[1];
+	    G[1] = gcode[2];
+	    numG = (int) strtol(G, NULL, 10);
+	    sprintf(bufferData, "\n\rG: %d ", numG);
+	    writeMsg(&handlerUSART2, bufferData);
+	    for(int i = 0; i <= numesp-1; i++){
+	    	j = 0;
+	    	if(gcode[espacios[i] + 1] == 'X'){
+	    		int largoc = (espacios[i+1])-(espacios[i]+1);
+	    		for(int k = 1 ; k <= largoc; k++){
+	    			X[j] = gcode[espacios[i] + 1 + k];
+	    			j++;
+	    		}
+	    		numX = (int) strtol(X, NULL, 10);
+				sprintf(bufferData, "\n\rX: %d", numX);
+				writeMsg(&handlerUSART2, bufferData);
+	    	}else if(gcode[espacios[i] + 1] == 'Y'){
+	    		int largoc = (espacios[i+1])-(espacios[i]+1);
+	    		for(int k = 1 ; k <= largoc; k++){
+	    			Y[j] = gcode[espacios[i] + 1 + k];
+	    			j++;
+	    		}
+	    		numY = (int) strtol(Y, NULL, 10);
+				sprintf(bufferData, "\n\rY: %d", numY);
+				writeMsg(&handlerUSART2, bufferData);
+	    	}else if(gcode[espacios[i] + 1] == 'F'){
+	    		int largoc = (espacios[i+1])-(espacios[i]+1);
+	    		for(int k = 1 ; k <= largoc; k++){
+	    			F[j] = gcode[espacios[i] + 1 + k];
+	    			j++;
+	    		}
+	    		numF = (int) strtol(F, NULL, 10);
+				sprintf(bufferData, "\n\rF: %d", numF);
+				writeMsg(&handlerUSART2, bufferData);
+	    	}else if(gcode[espacios[i] + 1] == 'S'){
+	    		int largoc = (espacios[i+1])-(espacios[i]+1);
+	    		for(int k = 1 ; k <= largoc; k++){
+	    			S[j] = gcode[espacios[i] + 1 + k];
+	    			j++;
+	    		}
+	    		numS = (int) strtol(S, NULL, 10);
+				sprintf(bufferData, "\n\rS: %d", numS);
+				writeMsg(&handlerUSART2, bufferData);
+	    	}
+	    }
+	    writeMsg(&handlerUSART2, "\r\n\r");
+	    if(numS > 0){
+	    	GPIO_WritePin(&handlerLaser, SET);
+	    }else{
+	    	numS = 0;
+	    	GPIO_WritePin(&handlerLaser, RESET);
+	    }
+		delayTimeX = RPMtoDelayX(numF);
+		delayTimeY = RPMtoDelayY(numF);
+	    if(numG == 1){
+	    	if(numX > 0){
+	    		stepsX_CW(numX);
+	    	}else{
+	    		stepsX_CCW(numX);
+	    	}
+	    	if(numY > 0){
+				stepsY_CW(numY);
+			}else{
+				stepsY_CCW(numY);
+			}
+	    }else if(numG == 2){
+	    	if((numX - counterX) > 0 && (numY - counterY) > 0){
+	    		stepsXYDiag_CW(numX, numY);
+	    	}else if((numX - counterX) < 0 && (numY - counterY) < 0){
+	    		stepsXYDiag_CCW(numX, numY);
+	    	}else if((numX - counterX) < 0 && (numY - counterY) > 0){
+	    		stepsXYDiagInv_CW(numX, numY);
+	    	}else if((numX - counterX) > 0 && (numY - counterY) < 0){
+	    		stepsXYDiagInv_CCW(numX, numY);
+	    	}
+	    }
+
 	}
 }
