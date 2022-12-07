@@ -62,6 +62,10 @@ double delayTimeY										= 0;
 uint16_t rpmX											= 0;
 uint16_t rpmY											= 0;
 uint16_t steps											= 0;
+uint16_t cond1											= 0;
+uint16_t cond2											= 0;
+uint16_t cond3											= 0;
+uint16_t cond4											= 0;
 int counterX											= 0;
 int	counterY											= 0;
 signed int firstParameter 								= 0;
@@ -106,6 +110,14 @@ void stepsX_CCW (uint16_t);
 void stepsY_CW (uint16_t);
 
 void stepsY_CCW (uint16_t);
+
+void stepsXYDiag_CW (uint16_t);
+
+void stepsXYDiag_CCW (uint16_t);
+
+void stepsXYDiagInv_CW(uint16_t);
+
+void stepsXYDiagInv_CCW(uint16_t);
 
 // Funcion principal del programa
 
@@ -423,8 +435,8 @@ void stepsY_CW(uint16_t steps){
 		}
 		j++;
 		counterY += 1;
-		if(counterY < 0){
-			counterY = 0;
+		if(counterY < 0 || counter > 540){
+			break;
 		}
 	}
 
@@ -445,8 +457,8 @@ void stepsY_CCW(uint16_t steps){
 		}
 		h--;
 		counterY -= 1;
-		if(counterY < 0){
-			counterY = 0;
+		if(counterY < 0 || counter > 540){
+			break;
 		}
 	}
 
@@ -465,8 +477,8 @@ void stepsX_CW(uint16_t steps){
 		}
 		l++;
 		counterX += 1;
-		if(counterX < 0){
-			counterX = 0;
+		if(counterX < 0 || counter > 576){
+			break;
 		}
 	}
 
@@ -484,11 +496,142 @@ void stepsX_CCW(uint16_t steps){
 		}
 		n--;
 		counterX -= 1;
-		if(counterX < 0){
-			counterX = 0;
+		if(counterX < 0 || counter > 576){
+			break;
 		}
 	}
 
+	SMlowX();
+}
+
+void stepsXYDiag_CW(uint16_t steps){
+	uint8_t j = 1;
+	for(uint16_t i = 1; i <= steps; i++){
+		SMlowX();
+		SMlowY1();
+		SMlowY2();
+		StepperMotorX(j);
+		StepperMotorY1(j);
+		StepperMotorY2(j);
+		delay((uint32_t) delayTimeY);
+		if(j == 4){
+			j = 0;
+		}
+		j++;
+		counterX += 1;
+		counterY += 1;
+		if(counterX < 0 || counter > 576){
+			break;
+		}
+		if(counterY < 0 || counter > 540){
+			break;
+		}
+	}
+	SMlowX();
+	SMlowY1();
+	SMlowY2();
+}
+
+void stepsXYDiag_CCW(uint16_t steps){
+	uint8_t n = 5;
+	for(uint16_t o = steps; o >= 1; o--){
+		SMlowX();
+		SMlowY1();
+		SMlowY2();
+		StepperMotorX(n);
+		StepperMotorY1(n);
+		StepperMotorY2(n);
+		delay((uint32_t) delayTimeY);
+		if(n == 1){
+			n = 5;
+		}
+		n--;
+		counterX -= 1;
+		counterY -= 1;
+		if(counterX < 0 || counter > 576){
+			break;
+		}
+		if(counterY < 0 || counter > 540){
+			break;
+		}
+	}
+	SMlowX();
+	SMlowY1();
+	SMlowY2();
+}
+
+void stepsXYDiagInv_CW(uint16_t steps){
+	uint8_t n = 5;
+	uint8_t j = 1;
+	for(uint16_t o = steps; o >= 1; o--){
+		SMlowX();
+		StepperMotorX(n);
+		if(n == 1){
+			n = 5;
+		}
+		n--;
+		counterX -= 1;
+		if(counterX < 0 || counter > 576){
+			break;
+		}
+		for(uint16_t i = 1; i <= steps; i++){
+			SMlowY1();
+			SMlowY2();
+			StepperMotorY1(j);
+			StepperMotorY2(j);
+			delay((uint32_t) delayTimeY);
+			if(j == 4){
+				j = 0;
+			}
+			j++;
+			counterY += 1;
+			if(counterY < 0 || counter > 540){
+				break;
+			}
+			break;
+		}
+	}
+
+	SMlowX();
+	SMlowY1();
+	SMlowY2();
+}
+
+void stepsXYDiagInv_CCW(uint16_t steps){
+	uint8_t l = 1;
+	uint8_t h = 5;
+	for(uint16_t m = 1; m <= steps; m++){
+		SMlowX();
+		StepperMotorX(l);
+		if(l == 4){
+			l = 0;
+		}
+		l++;
+		counterX += 1;
+		if(counterX < 0 || counter > 576){
+			break;
+		}
+		for(uint16_t k = steps; k >= 1; k--){
+			SMlowY1();
+			SMlowY2();
+			delay((uint32_t) delayTimeY);
+			StepperMotorY1(h);
+			StepperMotorY2(h);
+			delay((uint32_t) delayTimeY);
+			if(h == 1){
+				h = 5;
+			}
+			h--;
+			counterY -= 1;
+			if(counterY < 0 || counter > 540){
+				break;
+			}
+			break;
+		}
+	}
+
+	SMlowY1();
+	SMlowY2();
 	SMlowX();
 }
 
@@ -510,46 +653,114 @@ void parseCommands (char *ptrBufferReception){
 	if(strcmp(cmd, "help") == 0 || strcmp(cmd, "1") == 0){
 		writeMsg(&handlerUSART2, "\n");
 		writeMsg(&handlerUSART2, "Help menus CMDs:\n");
-		writeMsg(&handlerUSART2, "1) help				----	print this menu\n");
-		writeMsg(&handlerUSART2, "2) dummy				----	prints a test message\n");
-		writeMsg(&handlerUSART2, "3) moveY #steps		----	moves the # steps - Y axis (CW -> + or CCW -> -)\n");
-		writeMsg(&handlerUSART2, "4) moveX #steps		----	moves the # steps - X axis (CW -> + or CCW -> -)\n");
-		writeMsg(&handlerUSART2, "5) rpmX #n			----	update rpm (max 200 rpm)\n");
-		writeMsg(&handlerUSART2, "6) rpmY #n			----	update rpm (max 100 rpm)\n");
-		writeMsg(&handlerUSART2, "7) reset				----	set default values\n");
+		writeMsg(&handlerUSART2, "1) help					----	print this menu\n");
+		writeMsg(&handlerUSART2, "2) dummy					----	prints a test message\n");
+		writeMsg(&handlerUSART2, "3) moveY #steps			----	moves the # steps - Y axis (CW -> + or CCW -> -)\n");
+		writeMsg(&handlerUSART2, "4) moveX #steps			----	moves the # steps - X axis (CW -> + or CCW -> -)\n");
+		writeMsg(&handlerUSART2, "5) moveDiag #steps		----	moves the # steps - Diagonal (CW -> + or CCW -> -)\n");
+		writeMsg(&handlerUSART2, "6) moveDiagInv #steps		----	moves the # steps - Diagonal (CW -> + or CCW -> -)\n");
+		writeMsg(&handlerUSART2, "7) rpmX #n				----	update rpm (max 200 rpm)\n");
+		writeMsg(&handlerUSART2, "8) rpmY #n				----	update rpm (max 100 rpm)\n");
+		writeMsg(&handlerUSART2, "9) reset					----	set default values\n");
 	}else if(strcmp(cmd, "dummy") == 0 || strcmp(cmd, "2") == 0){
 		writeMsg(&handlerUSART2, "\n\rCMD: dummy working\n\r");
 	}else if(strcmp(cmd, "moveY") == 0 || strcmp(cmd, "3") == 0){
-		if(firstParameter>0){
-			stepsY_CW((int) firstParameter);
-			sprintf(bufferData, "\n\rSteps Y axis CW: %u\n\r", firstParameter);
-			writeMsg(&handlerUSART2, bufferData);
-			sprintf(bufferData, "\n\rCounter Y axis: %u\n\r", counterY);
-			writeMsg(&handlerUSART2, bufferData);
+		cond1 = counterY+firstParameter;
+		cond2 = counterY-firstParameter;
+		if(cond1 > 540 || cond2 < 0){
+			writeMsg(&handlerUSART2, "\n\rWrong coordinates, off limits\n\r");
 		}else{
-			firstParameter = firstParameter * -1;
-			stepsY_CCW((int) firstParameter);
-			sprintf(bufferData, "\n\rSteps Y axis CCW: -%u\n\r", firstParameter);
-			writeMsg(&handlerUSART2, bufferData);
-			sprintf(bufferData, "\n\rCounter Y axis: %u\n\r", counterY);
-			writeMsg(&handlerUSART2, bufferData);
+			if(firstParameter>0){
+				stepsY_CW((int) firstParameter);
+				sprintf(bufferData, "\n\rSteps Y axis CW: %u\n\r", firstParameter);
+				writeMsg(&handlerUSART2, bufferData);
+				sprintf(bufferData, "\n\rCounter Y axis: %u\n\r", counterY);
+				writeMsg(&handlerUSART2, bufferData);
+			}else{
+				firstParameter = firstParameter * -1;
+				stepsY_CCW((int) firstParameter);
+				sprintf(bufferData, "\n\rSteps Y axis CCW: -%u\n\r", firstParameter);
+				writeMsg(&handlerUSART2, bufferData);
+				sprintf(bufferData, "\n\rCounter Y axis: %u\n\r", counterY);
+				writeMsg(&handlerUSART2, bufferData);
+			}
 		}
 	}else if(strcmp(cmd, "moveX") == 0 || strcmp(cmd, "4") == 0){
-		if(firstParameter>0){
-			stepsX_CW((int) firstParameter);
-			sprintf(bufferData, "\n\rSteps X axis CW: %u\n\r", firstParameter);
-			writeMsg(&handlerUSART2, bufferData);
-			sprintf(bufferData, "\n\rCounter X axis: %u\n\r", counterX);
-			writeMsg(&handlerUSART2, bufferData);
+		cond1 = counterX+firstParameter;
+		cond2 = counterX-firstParameter;
+		if(cond1 > 576 || cond2 < 0){
+			writeMsg(&handlerUSART2, "\n\rWrong coordinates, off limits\n\r");
 		}else{
-			firstParameter = firstParameter * -1;
-			stepsX_CCW((int) firstParameter);
-			sprintf(bufferData, "\n\rSteps X axis CCW: -%u\n\r", firstParameter);
-			writeMsg(&handlerUSART2, bufferData);
-			sprintf(bufferData, "\n\rCounter X axis: %u\n\r", counterX);
-			writeMsg(&handlerUSART2, bufferData);
+			if(firstParameter>0){
+				stepsX_CW((int) firstParameter);
+				sprintf(bufferData, "\n\rSteps X axis CW: %u\n\r", firstParameter);
+				writeMsg(&handlerUSART2, bufferData);
+				sprintf(bufferData, "\n\rCounter X axis: %u\n\r", counterX);
+				writeMsg(&handlerUSART2, bufferData);
+			}else{
+				firstParameter = firstParameter * -1;
+				stepsX_CCW((int) firstParameter);
+				sprintf(bufferData, "\n\rSteps X axis CCW: -%u\n\r", firstParameter);
+				writeMsg(&handlerUSART2, bufferData);
+				sprintf(bufferData, "\n\rCounter X axis: %u\n\r", counterX);
+				writeMsg(&handlerUSART2, bufferData);
+			}
 		}
-	}else if(strcmp(cmd, "rpmX") == 0 || strcmp(cmd, "5") == 0){
+	}else if(strcmp(cmd, "moveDiag") == 0 || strcmp(cmd, "5") == 0){
+		cond1 = counterX+firstParameter;
+		cond2 = counterX-firstParameter;
+		cond3 = counterY+firstParameter;
+		cond4 = counterY-firstParameter;
+		if(cond1 > 576 || cond2 < 0 || cond3 > 540 || cond4 < 0){
+			writeMsg(&handlerUSART2, "\n\rWrong coordinates, off limits\n\r");
+		}else{
+			if(firstParameter>0){
+				stepsXYDiag_CW((int) firstParameter);
+				sprintf(bufferData, "\n\rDiagonal Steps CW: %u\n\r", firstParameter);
+				writeMsg(&handlerUSART2, bufferData);
+				sprintf(bufferData, "\n\rCounter X axis: %u\n\r", counterX);
+				writeMsg(&handlerUSART2, bufferData);
+				sprintf(bufferData, "\n\rCounter Y axis: %u\n\r", counterY);
+				writeMsg(&handlerUSART2, bufferData);
+			}else{
+				firstParameter = firstParameter * -1;
+				stepsXYDiag_CCW((int) firstParameter);
+				sprintf(bufferData, "\n\rDiagonal Steps CCW: %u\n\r", firstParameter);
+				writeMsg(&handlerUSART2, bufferData);
+				sprintf(bufferData, "\n\rCounter X axis: %u\n\r", counterX);
+				writeMsg(&handlerUSART2, bufferData);
+				sprintf(bufferData, "\n\rCounter Y axis: %u\n\r", counterY);
+				writeMsg(&handlerUSART2, bufferData);
+			}
+		}
+	}else if(strcmp(cmd, "moveDiagInv") == 0 || strcmp(cmd, "6") == 0){
+		cond1 = counterX+firstParameter;
+		cond2 = counterX-firstParameter;
+		cond3 = counterY+firstParameter;
+		cond4 = counterY-firstParameter;
+		if(cond1 > 576 || cond2 < 0 || cond3 > 540 || cond4 < 0){
+			writeMsg(&handlerUSART2, "\n\rWrong coordinates, off limits\n\r");
+		}else{
+			if(firstParameter>0){
+				stepsXYDiagInv_CW((int) firstParameter);
+				sprintf(bufferData, "\n\rInverted Diagonal Steps CW: %u\n\r", firstParameter);
+				writeMsg(&handlerUSART2, bufferData);
+				sprintf(bufferData, "\n\rCounter X axis: %u\n\r", counterX);
+				writeMsg(&handlerUSART2, bufferData);
+				sprintf(bufferData, "\n\rCounter Y axis: %u\n\r", counterY);
+				writeMsg(&handlerUSART2, bufferData);
+			}else{
+				firstParameter = firstParameter * -1;
+				stepsXYDiagInv_CCW((int) firstParameter);
+				sprintf(bufferData, "\n\rInverted Diagonal Steps CCW: %u\n\r", firstParameter);
+				writeMsg(&handlerUSART2, bufferData);
+				sprintf(bufferData, "\n\rCounter X axis: %u\n\r", counterX);
+				writeMsg(&handlerUSART2, bufferData);
+				sprintf(bufferData, "\n\rCounter Y axis: %u\n\r", counterY);
+				writeMsg(&handlerUSART2, bufferData);
+			}
+		}
+	}else if(strcmp(cmd, "rpmX") == 0 || strcmp(cmd, "7") == 0){
 		if(firstParameter > 0){
 			if(firstParameter >= 200){
 				delayTimeX = RPMtoDelayX(200);
@@ -563,7 +774,7 @@ void parseCommands (char *ptrBufferReception){
 			sprintf(bufferData, "\n\rIngrese un valor mayor a 0. Valor incorrecto -> %u\n\r", firstParameter);
 			writeMsg(&handlerUSART2, bufferData);
 		}
-	}else if(strcmp(cmd, "rpmY") == 0 || strcmp(cmd, "6") == 0){
+	}else if(strcmp(cmd, "rpmY") == 0 || strcmp(cmd, "8") == 0){
 		if(firstParameter > 0){
 			if(firstParameter >= 100){
 				delayTimeY = RPMtoDelayY(100);
@@ -577,7 +788,7 @@ void parseCommands (char *ptrBufferReception){
 			sprintf(bufferData, "\n\rIngrese un valor mayor a 0. Valor incorrecto -> %u\n\r", firstParameter);
 			writeMsg(&handlerUSART2, bufferData);
 		}
-	}else if(strcmp(cmd, "reset") == 0 || strcmp(cmd, "7") == 0){
+	}else if(strcmp(cmd, "reset") == 0 || strcmp(cmd, "9") == 0){
 		counterX = 0;
 		counterY = 0;
 		rpmX = 200;
@@ -589,9 +800,5 @@ void parseCommands (char *ptrBufferReception){
 		writeMsg(&handlerUSART2, bufferData);
 		sprintf(bufferData, "\n\rCoordinates X: %u Y: %u\n\r", counterX, counterY);
 		writeMsg(&handlerUSART2, bufferData);
-	}else if(strcmp(cmd, "X") == 0 || strcmp(cmd, "8") == 0){
-
-	}else if(strcmp(cmd, "Y") == 0 || strcmp(cmd, "9") == 0){
-
 	}
 }
