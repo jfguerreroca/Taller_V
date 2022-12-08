@@ -190,3 +190,14 @@ void usart2Rx_Callback(void){
 void CaptureFrec1_Callback(void){
 	flagCap = 1;
 }
+
+/*
+ * Hola Felipe, tu solución es muy similar a la de casi todos tus compañeros, donde la captura se encuentra siempre encendida
+ * La verdad es que no eniendo por que decidieron hacerlo así, pero pues esta bien aunque no es lo ideal, ya que se debe poder
+ * activar y desactivar algo cuando uno lo desee.
+ *
+ * Calificación = 4.5
+ *
+ *
+ *
+ * */
